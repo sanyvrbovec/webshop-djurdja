@@ -141,8 +141,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $pdo = new PDO("mysql:host={$S['db']['host']};dbname={$S['db']['name']};charset=utf8mb4", $S['db']['user'], $S['db']['pass'], [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
                 $schema = file_get_contents(__DIR__ . '/schema.sql');
                 foreach (preg_split('/;\s*[\r\n]+/', $schema) as $stmt) {
-                    $stmt = trim($stmt);
-                    if ($stmt === '' || strpos($stmt, '--') === 0) continue;
+                    // Makni SQL komentar-linije unutar chunka (chunk može počinjati headerom)
+                    $stmt = trim(preg_replace('/^\s*--.*$/m', '', $stmt));
+                    if ($stmt === '') continue;
                     $pdo->exec($stmt);
                 }
 
