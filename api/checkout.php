@@ -38,7 +38,7 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors['email'] = 'Unesite ispr
 if (mb_strlen($address) < 3) $errors['address'] = 'Unesite adresu.';
 if (mb_strlen($city) < 2) $errors['city'] = 'Unesite grad.';
 if (!preg_match('/^\d{4,10}$/', $postal)) $errors['postal'] = 'Unesite poštanski broj.';
-if (!in_array($method, ['cod', 'bank_transfer', 'stripe'], true)) $errors['payment_method'] = 'Odaberite način plaćanja.';
+if (!in_array($method, ['cod', 'stripe'], true)) $errors['payment_method'] = 'Odaberite način plaćanja.';
 if (!$terms) $errors['terms'] = 'Morate prihvatiti uvjete korištenja.';
 if ($errors) {
     json_out(['ok' => false, 'error' => reset($errors), 'fields' => $errors], 422);

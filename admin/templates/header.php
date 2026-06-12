@@ -5,7 +5,8 @@ $script = basename($_SERVER['SCRIPT_NAME'] ?? '');
 $djStatus = $djStatus ?? Djurdja::status();
 $nav = [
     ['index.php', '📊', 'Nadzorna ploča'],
-    ['narudzbe.php', '📦', 'Narudžbe', ['narudzba.php', 'racun.php']],
+    ['narudzbe.php', '📦', 'Narudžbe', ['narudzba.php']],
+    ['racuni.php', '🧾', 'Računi', ['racun.php']],
     ['proizvodi.php', '🏷️', 'Proizvodi', ['proizvod.php']],
     ['kategorije.php', '🗂️', 'Kategorije'],
     ['sync.php', '🔄', 'Sinkronizacija'],
@@ -14,6 +15,7 @@ $nav = [
     ['stranice.php', '📄', 'Stranice'],
     ['__sep2', '', 'Postavke'],
     ['placanja.php', '💳', 'Plaćanja i dostava'],
+    ['email.php', '✉️', 'E-mail postavke'],
     ['djurdja.php', '🔌', 'Đurđa veza'],
     ['postavke.php', '⚙️', 'Općenito'],
 ];

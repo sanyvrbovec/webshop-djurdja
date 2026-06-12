@@ -1,9 +1,9 @@
 # ============================================================
 # ĐurđaShop — Apache konfiguracija
+# NAPOMENA: namjerno BEZ "Options" direktiva — mnogi shared hostingi
+# ih ne dopuštaju u .htaccess pa bi cijela trgovina pala na 500.
+# Listanje direktorija sprječavaju prazni index.html u uploads/.
 # ============================================================
-
-Options -Indexes
-ServerSignature Off
 
 # Blokiraj skrivene datoteke (.git, .env, .lock…)
 <FilesMatch "^\.">
@@ -22,6 +22,7 @@ ServerSignature Off
     RewriteRule ^s/([a-z0-9-]+)/?$ stranica.php?slug=$1 [L,QSA]
     RewriteRule ^sitemap\.xml$ sitemap.php [L]
     RewriteRule ^robots\.txt$ robots.php [L]
+    RewriteRule ^llms\.txt$ llms.php [L]
 </IfModule>
 
 <IfModule mod_headers.c>

@@ -37,7 +37,8 @@ $offset = ($page - 1) * $perPage;
 
 $products = $db->fetchAll(
     "SELECT p.*, c.name AS cat_name,
-        (SELECT filename FROM product_images pi WHERE pi.product_id = p.id ORDER BY pi.is_primary DESC, pi.sort_order LIMIT 1) AS image
+        (SELECT filename FROM product_images pi WHERE pi.product_id = p.id ORDER BY pi.is_primary DESC, pi.sort_order LIMIT 1) AS image,
+        (SELECT COUNT(*) FROM product_variants pv WHERE pv.product_id = p.id AND pv.is_active = 1) AS has_variants
      FROM products p LEFT JOIN categories c ON c.id = p.category_id
      WHERE $where ORDER BY $orderBy LIMIT $perPage OFFSET $offset",
     $params
@@ -48,8 +49,10 @@ $sidebar = $db->fetchAll(
      FROM categories c WHERE c.is_visible = 1 ORDER BY c.sort_order, c.name'
 );
 
-$pageTitle = $category ? $category['name'] : ($q !== '' ? 'Pretraga: ' . $q : 'Svi proizvodi');
-$pageDesc = $category && $category['description'] ? $category['description'] : ($pageTitle . ' — ' . shop_name());
+$pageTitle = $category ? ($category['seo_title'] ?: $category['name']) : ($q !== '' ? 'Pretraga: ' . $q : 'Svi proizvodi');
+$pageDesc = $category
+    ? ($category['seo_description'] ?: ($category['description'] ?: ($category['name'] . ' — ' . shop_name())))
+    : ($pageTitle . ' — ' . shop_name());
 $crumbs = [['Početna', SITE_URL . '/'], ['Proizvodi', SITE_URL . '/proizvodi.php']];
 if ($category) $crumbs[] = [$category['name'], null];
 $pageJsonLd = [Seo::breadcrumbJsonLd($crumbs)];

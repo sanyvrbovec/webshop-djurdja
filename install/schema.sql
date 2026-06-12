@@ -37,6 +37,8 @@ CREATE TABLE IF NOT EXISTS categories (
     image VARCHAR(255) NULL,
     sort_order INT NOT NULL DEFAULT 0,
     is_visible TINYINT(1) NOT NULL DEFAULT 1,
+    seo_title VARCHAR(190) NULL,
+    seo_description VARCHAR(300) NULL,
     synced_at DATETIME NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -80,6 +82,25 @@ CREATE TABLE IF NOT EXISTS product_images (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_pi_product (product_id, sort_order),
     CONSTRAINT fk_pi_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_croatian_ci;
+
+CREATE TABLE IF NOT EXISTS product_variants (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    product_id INT UNSIGNED NOT NULL,
+    option1_name VARCHAR(60) NOT NULL DEFAULT '',
+    option1_value VARCHAR(60) NOT NULL DEFAULT '',
+    option2_name VARCHAR(60) NULL,
+    option2_value VARCHAR(60) NULL,
+    label VARCHAR(190) NOT NULL,
+    sku VARCHAR(64) NULL,
+    price DECIMAL(10,2) NULL,
+    stock_qty DECIMAL(12,2) NULL,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    sort_order INT NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_pv_product (product_id, is_active, sort_order),
+    CONSTRAINT fk_pv_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_croatian_ci;
 
 CREATE TABLE IF NOT EXISTS pages (
@@ -146,8 +167,10 @@ CREATE TABLE IF NOT EXISTS order_items (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     order_id INT UNSIGNED NOT NULL,
     product_id INT UNSIGNED NULL,
+    variant_id INT UNSIGNED NULL,
     djurdja_product_id VARCHAR(36) NULL,
     name VARCHAR(255) NOT NULL,
+    variant_label VARCHAR(190) NULL,
     quantity INT UNSIGNED NOT NULL DEFAULT 1,
     unit_price DECIMAL(10,2) NOT NULL,
     vat_rate DECIMAL(5,2) NOT NULL DEFAULT 25.00,
@@ -229,11 +252,13 @@ CREATE TABLE IF NOT EXISTS newsletter_subscribers (
 INSERT INTO payment_methods (code, name, description, is_active, sort_order, config, fee_type, fee_value, fiscal_auto) VALUES
 ('cod', 'Pouzeće', 'Plaćanje gotovinom prilikom preuzimanja pošiljke.', 1, 1,
  '{"instructions":"Platite dostavljaču prilikom preuzimanja paketa."}', 'none', 0.00, 1),
-('bank_transfer', 'Virman / opća uplatnica', 'Uplata na IBAN. Narudžba se šalje nakon evidentirane uplate.', 1, 2,
- '{"iban":"","bank_name":"","recipient":"","model":"HR00","instructions":"Uplatite na navedeni IBAN. U poziv na broj upišite broj narudžbe."}', 'none', 0.00, 1),
-('stripe', 'Kartično plaćanje', 'Sigurno online plaćanje karticom (Visa, Mastercard).', 0, 3,
+('stripe', 'Kartično plaćanje', 'Sigurno online plaćanje karticom (Visa, Mastercard).', 0, 2,
  '{"publishable_key":"","secret_key_enc":"","webhook_secret_enc":"","sandbox":true}', 'none', 0.00, 1)
 ON DUPLICATE KEY UPDATE name = VALUES(name);
+
+-- Verzija sheme (mora odgovarati Migrations::TARGET)
+INSERT INTO settings (k, v) VALUES ('schema_version', '2')
+ON DUPLICATE KEY UPDATE v = VALUES(v);
 
 -- ============================================================
 -- Seed: standardne stranice

@@ -125,6 +125,8 @@ class Sync
         }
 
         $stock = $p['stock'] ?? null;
+        // trackStock eksplicitno iz đurđe ako postoji; inače: zaliha poslana = prati se
+        $track = array_key_exists('trackStock', $p) ? (!empty($p['trackStock']) ? 1 : 0) : ($stock === null ? 0 : 1);
         $core = [
             'category_id' => $catId,
             'name'        => mb_substr($name, 0, 255),
@@ -134,7 +136,7 @@ class Sync
             'barcode'     => $p['barcode'] ?? null,
             'is_service'  => !empty($p['isService']) ? 1 : 0,
             'stock_qty'   => $stock === null ? null : round((float) $stock, 2),
-            'track_stock' => $stock === null ? 0 : 1,
+            'track_stock' => $track,
             'short_description' => mb_substr(trim((string) ($p['description'] ?? '')), 0, 500) ?: null,
             'is_orphaned' => 0,
             'synced_at'   => date('Y-m-d H:i:s'),

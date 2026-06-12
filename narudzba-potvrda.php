@@ -12,12 +12,6 @@ if (!$order) { http_response_code(404); require __DIR__ . '/404.php'; exit; }
 $items = $db->fetchAll('SELECT * FROM order_items WHERE order_id = :o', [':o' => $order['id']]);
 $payCancelled = ($_GET['pay'] ?? '') === 'cancel';
 
-$bankCfg = [];
-if ($order['payment_method'] === 'bank_transfer') {
-    $m = (new PaymentManager())->getMethod('bank_transfer');
-    $bankCfg = $m['config'] ?? [];
-}
-
 $pageTitle = 'Narudžba ' . $order['order_number'];
 $pageDesc = 'Status narudžbe';
 require __DIR__ . '/includes/header.php';
@@ -38,7 +32,7 @@ require __DIR__ . '/includes/header.php';
     <div class="card">
       <h3>Stavke</h3>
       <?php foreach ($items as $it): ?>
-        <div class="summary-row"><span><?= e($it['name']) ?> <small style="color:var(--c-muted)">× <?= (int) $it['quantity'] ?></small></span><span><?= fmt_price($it['total']) ?></span></div>
+        <div class="summary-row"><span><?= e($it['name'] . (!empty($it['variant_label']) ? ' — ' . $it['variant_label'] : '')) ?> <small style="color:var(--c-muted)">× <?= (int) $it['quantity'] ?></small></span><span><?= fmt_price($it['total']) ?></span></div>
       <?php endforeach; ?>
       <?php if ((float) $order['shipping_cost'] > 0): ?><div class="summary-row"><span>Dostava</span><span><?= fmt_price($order['shipping_cost']) ?></span></div><?php endif; ?>
       <?php if ((float) $order['payment_fee'] > 0): ?><div class="summary-row"><span>Naknada plaćanja</span><span><?= fmt_price($order['payment_fee']) ?></span></div><?php endif; ?>
@@ -46,10 +40,12 @@ require __DIR__ . '/includes/header.php';
 
       <?php if ($order['fiscal_status'] === 'fiscalized'): ?>
         <div class="fiscal-box" style="margin-top:16px">
+          <?php if ($order['fiscal_mode'] === 'test'): ?><strong style="color:#b45309">⚠ TESTNI RAČUN (probni način rada)</strong><br><?php endif; ?>
           <strong>✓ Račun je fiskaliziran u Poreznoj upravi</strong><br>
           Broj računa: <strong><?= e($order['fiscal_receipt_number']) ?></strong><br>
           JIR: <?= e($order['fiscal_jir']) ?><br>
           ZKI: <?= e($order['fiscal_zki']) ?>
+          <?php if ($order['fiscal_qr']): ?><br><a href="<?= e($order['fiscal_qr']) ?>" target="_blank" rel="noopener">Provjeri račun u Poreznoj upravi ↗</a><?php endif; ?>
         </div>
       <?php endif; ?>
     </div>
@@ -62,18 +58,6 @@ require __DIR__ . '/includes/header.php';
         <div class="summary-row"><span>Način</span><strong><?= e(Orders::paymentLabel($order['payment_method'])) ?></strong></div>
         <div class="summary-row"><span>Dostava na</span><span style="text-align:right"><?= e($order['customer_name']) ?><br><?= e($order['address']) ?>, <?= e($order['postal_code']) ?> <?= e($order['city']) ?></span></div>
       </div>
-
-      <?php if ($order['payment_method'] === 'bank_transfer' && $order['payment_status'] !== 'paid'): ?>
-        <div class="card" style="border-color:#fde68a;background:#fffbeb">
-          <h3>💳 Podaci za uplatu</h3>
-          <div class="summary-row"><span>IBAN</span><strong><?= e($bankCfg['iban'] ?: 'kontaktirajte nas') ?></strong></div>
-          <div class="summary-row"><span>Primatelj</span><strong><?= e(($bankCfg['recipient'] ?? '') ?: (Djurdja::company()['companyName'] ?? shop_name())) ?></strong></div>
-          <div class="summary-row"><span>Model i poziv</span><strong><?= e($bankCfg['model'] ?? 'HR00') ?> <?= e(preg_replace('/\D/', '', $order['order_number'])) ?></strong></div>
-          <div class="summary-row"><span>Opis</span><strong><?= e($order['order_number']) ?></strong></div>
-          <div class="summary-row total"><span>Iznos</span><span class="val"><?= fmt_price($order['total']) ?></span></div>
-          <p style="font-size:12.5px;color:#92400e;margin:8px 0 0">Narudžbu šaljemo nakon evidentirane uplate.</p>
-        </div>
-      <?php endif; ?>
 
       <a href="<?= e(url('proizvodi.php')) ?>" class="btn btn-ghost" style="width:100%">← Natrag u trgovinu</a>
     </div>

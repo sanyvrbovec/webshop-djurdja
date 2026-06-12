@@ -82,11 +82,12 @@ class Seo
         ]);
     }
 
-    public static function productJsonLd(array $p, array $images, string $url): string
+    public static function productJsonLd(array $p, array $images, string $url, ?bool $outOfStock = null): string
     {
-        $available = ((int) $p['track_stock'] === 1 && (float) ($p['stock_qty'] ?? 0) <= 0)
-            ? 'https://schema.org/OutOfStock'
-            : 'https://schema.org/InStock';
+        if ($outOfStock === null) {
+            $outOfStock = ((int) $p['track_stock'] === 1 && (float) ($p['stock_qty'] ?? 0) <= 0);
+        }
+        $available = $outOfStock ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock';
         $data = [
             '@context' => 'https://schema.org',
             '@type'    => 'Product',
@@ -103,6 +104,7 @@ class Seo
             ],
         ];
         if (!empty($p['barcode'])) $data['gtin13'] = $p['barcode'];
+        $data['sku'] = (string) ($p['id'] ?? '');
         if ($images) {
             $data['image'] = array_map(fn($img) => SITE_URL . '/uploads/products/' . $img['filename'], array_slice($images, 0, 5));
         }

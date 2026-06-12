@@ -46,8 +46,42 @@ if (!defined('SITE_URL')) {
     define('SITE_URL', $proto . '://' . $host . BASE_URL);
 }
 
-// ── 5. DB ──
-$db = Database::instance();
+// ── 5. DB ── (pad baze NIKAD ne smije dati sirovi 500)
+try {
+    $db = Database::instance();
+} catch (Throwable $e) {
+    error_log('[bootstrap] Baza nedostupna: ' . $e->getMessage());
+    http_response_code(503);
+    header('Retry-After: 120');
+    if (str_contains($_SERVER['SCRIPT_NAME'] ?? '', '/api/')) {
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['ok' => false, 'error' => 'Baza podataka trenutno nije dostupna. Pokušajte za koju minutu.']);
+    } else {
+        $dbgMsg = (defined('DEBUG') && DEBUG) ? '<p style="color:#b91c1c;font-size:13px;word-break:break-all">' . htmlspecialchars($e->getMessage(), ENT_QUOTES) . '</p>' : '';
+        echo '<!doctype html><html lang="hr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+            . '<meta name="robots" content="noindex"><title>Trenutno nedostupno</title>'
+            . '<body style="margin:0;font-family:system-ui,sans-serif;background:#f8fafc;display:grid;place-items:center;min-height:100vh">'
+            . '<div style="max-width:480px;padding:40px;text-align:center">'
+            . '<div style="font-size:44px">🛠️</div>'
+            . '<h1 style="font-size:22px;color:#0f172a">Trgovina se trenutno osvježava</h1>'
+            . '<p style="color:#475569;font-size:15px;line-height:1.6">Vratite se za nekoliko minuta — hvala na strpljenju!</p>'
+            . $dbgMsg
+            . '<p style="color:#94a3b8;font-size:12px;line-height:1.6;border-top:1px solid #e2e8f0;padding-top:14px;margin-top:22px">'
+            . 'Napomena za vlasnika trgovine: baza podataka nije dostupna. Provjerite radi li MySQL te jesu li podaci u '
+            . '<code>config/config.php</code> ispravni (host, ime baze, korisnik, lozinka). '
+            . 'Ako ste trgovinu upravo prenijeli na novi server, obrišite <code>config/config.php</code> i otvorite '
+            . '<code>/install/</code> za ponovno postavljanje.</p>'
+            . '</div></body></html>';
+    }
+    exit;
+}
+
+// ── 5b. Auto-migracije sheme (tihe, idempotentne) ──
+try {
+    Migrations::ensure();
+} catch (Throwable $e) {
+    error_log('[bootstrap] migracije: ' . $e->getMessage());
+}
 
 // ── 6. Sesija (sigurni cookie flagovi) ──
 if (PHP_SAPI !== 'cli' && session_status() === PHP_SESSION_NONE) {

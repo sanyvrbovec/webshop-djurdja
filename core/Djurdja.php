@@ -50,7 +50,22 @@ class Djurdja
     /** Smije li se zaprimati narudžbe? */
     public static function checkoutAllowed(): bool
     {
-        return in_array(self::status(), ['connected', 'stale'], true);
+        return self::shopAllowed() && in_array(self::status(), ['connected', 'stale'], true);
+    }
+
+    /**
+     * Smije li trgovina uopće raditi na trenutnom đurđa paketu?
+     * Backend može u plan_features staviti WEBSHOP=0 za neke planove →
+     * svi shopovi na tom planu se zaključaju (izlog pokazuje obavijest).
+     * Nepoznato/nedostupno = dopušteno (fail-open; free plan je za sada OK).
+     */
+    public static function shopAllowed(): bool
+    {
+        $f = self::account()['features'] ?? null;
+        if (is_array($f) && array_key_exists('WEBSHOP', $f) && !$f['WEBSHOP']) {
+            return false;
+        }
+        return true;
     }
 
     /**

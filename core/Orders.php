@@ -69,13 +69,23 @@ class Orders
                 $db->insert('order_items', [
                     'order_id'           => $orderId,
                     'product_id'         => (int) $it['id'],
+                    'variant_id'         => $it['variant_id'] ?? null,
                     'djurdja_product_id' => $it['djurdja_id'],
                     'name'               => $it['name'],
+                    'variant_label'      => $it['variant_label'] ?? null,
                     'quantity'           => (int) $it['qty'],
                     'unit_price'         => $it['price'],
                     'vat_rate'           => $it['vat_rate'],
                     'total'              => $it['line_total'],
                 ]);
+                // Zaliha varijante (lokalna, samo ako se prati)
+                if (!empty($it['variant_id']) && $it['variant_stock'] !== null) {
+                    $db->query(
+                        'UPDATE product_variants SET stock_qty = GREATEST(stock_qty - :q, 0) WHERE id = :id AND stock_qty IS NOT NULL',
+                        [':q' => (int) $it['qty'], ':id' => (int) $it['variant_id']]
+                    );
+                }
+                // Đurđina zaliha artikla (ukupna) — održava koherentnost do sljedećeg synca
                 if ((int) $it['track_stock'] === 1) {
                     $db->query(
                         'UPDATE products SET stock_qty = GREATEST(stock_qty - :q, 0) WHERE id = :id AND track_stock = 1',
@@ -156,6 +166,12 @@ class Orders
                 $db->query(
                     'UPDATE products SET stock_qty = stock_qty + :q WHERE id = :id AND track_stock = 1',
                     [':q' => (int) $it['quantity'], ':id' => (int) $it['product_id']]
+                );
+            }
+            if (!empty($it['variant_id'])) {
+                $db->query(
+                    'UPDATE product_variants SET stock_qty = stock_qty + :q WHERE id = :id AND stock_qty IS NOT NULL',
+                    [':q' => (int) $it['quantity'], ':id' => (int) $it['variant_id']]
                 );
             }
         }

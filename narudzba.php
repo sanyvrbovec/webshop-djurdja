@@ -63,7 +63,7 @@ require __DIR__ . '/includes/header.php';
       <div class="card" style="position:sticky;top:90px">
         <h3>Vaša narudžba</h3>
         <?php foreach ($items as $it): ?>
-          <div class="summary-row"><span><?= e($it['name']) ?> <small style="color:var(--c-muted)">× <?= (int) $it['qty'] ?></small></span><span><?= fmt_price($it['line_total']) ?></span></div>
+          <div class="summary-row"><span><?= e($it['display_name'] ?? $it['name']) ?> <small style="color:var(--c-muted)">× <?= (int) $it['qty'] ?></small></span><span><?= fmt_price($it['line_total']) ?></span></div>
         <?php endforeach; ?>
         <div class="summary-row" style="border-top:1px solid var(--c-border);margin-top:6px;padding-top:12px"><span>Dostava</span><span><?= $shipping > 0 ? fmt_price($shipping) : 'Besplatna' ?></span></div>
         <div class="summary-row total"><span>Ukupno</span><span class="val" id="grand-total"><?= fmt_price($subtotal + $shipping) ?></span></div>

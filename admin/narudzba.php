@@ -35,6 +35,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($action === 'cancel') {
         Orders::cancel($id);
         flash('success', 'Narudžba otkazana, zaliha vraćena.');
+    } elseif ($action === 'send_receipt') {
+        if (in_array($order['fiscal_status'], ['fiscalized', 'stornoed'], true)) {
+            $ok = Mailer::fiscalReceipt($order, $err);
+            flash($ok ? 'success' : 'error', $ok
+                ? 'Račun poslan na ' . $order['customer_email'] . '.'
+                : 'Slanje računa nije uspjelo: ' . ($err ?: 'nepoznata greška'));
+        } else {
+            flash('error', 'Račun nije fiskaliziran pa se ne može poslati.');
+        }
     } elseif ($action === 'note') {
         $db->update('orders', ['admin_note' => mb_substr((string) $_POST['admin_note'], 0, 2000)], 'id = :id', [':id' => $id]);
         flash('success', 'Bilješka spremljena.');
@@ -58,7 +67,7 @@ require __DIR__ . '/templates/header.php';
         <tbody>
         <?php foreach ($items as $it): ?>
           <tr>
-            <td><?= e($it['name']) ?></td>
+            <td><?= e($it['name']) ?><?php if (!empty($it['variant_label'])): ?><br><span style="font-size:12px;color:#9ca3af"><?= e($it['variant_label']) ?></span><?php endif; ?></td>
             <td class="num"><?= fmt_price($it['unit_price']) ?></td>
             <td class="num"><?= (int) $it['quantity'] ?></td>
             <td class="num"><?= rtrim(rtrim(number_format((float) $it['vat_rate'], 2, ',', ''), '0'), ',') ?>%</td>
@@ -80,6 +89,10 @@ require __DIR__ . '/templates/header.php';
         JIR: <code><?= e($order['fiscal_jir']) ?></code><br>ZKI: <code><?= e($order['fiscal_zki']) ?></code></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <a class="abtn sm" target="_blank" href="<?= e(adminUrl('racun.php?id=' . $id)) ?>">🖨 Ispiši račun</a>
+          <form method="post" onsubmit="return confirm('Poslati račun na <?= e($order['customer_email']) ?>?')">
+            <?= csrf_field() ?><input type="hidden" name="action" value="send_receipt">
+            <button class="abtn ghost sm">✉ Pošalji račun kupcu</button>
+          </form>
           <form method="post" onsubmit="return confirm('Stornirati račun? Ova radnja je trajna i šalje storno u Poreznu upravu.')">
             <?= csrf_field() ?><input type="hidden" name="action" value="storno">
             <input type="hidden" name="reason" value="Povrat robe">

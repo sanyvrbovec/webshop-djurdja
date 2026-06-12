@@ -23,10 +23,16 @@ $outOfStock = ((int) $p['track_stock'] === 1 && (float) ($p['stock_qty'] ?? 0) <
     <?php if (!empty($p['cat_name'])): ?><div class="p-cat"><?= e($p['cat_name']) ?></div><?php endif; ?>
     <h3 class="p-name"><a href="<?= e(url('p/' . $p['slug'])) ?>"><?= e($p['name']) ?></a></h3>
     <div class="p-foot">
-      <div class="p-price"><?= fmt_price($p['price']) ?> <small>/ <?= e($p['unit']) ?></small></div>
-      <button class="p-add" data-add="<?= (int) $p['id'] ?>" <?= $outOfStock ? 'disabled' : '' ?> aria-label="Dodaj u košaricu">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      </button>
+      <div class="p-price"><?= !empty($p['has_variants']) ? '<small>od </small>' : '' ?><?= fmt_price($p['price']) ?> <small>/ <?= e($p['unit']) ?></small></div>
+      <?php if (!empty($p['has_variants'])): ?>
+        <a class="p-add" href="<?= e(url('p/' . $p['slug'])) ?>" aria-label="Odaberi opcije" title="Odaberi opcije">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </a>
+      <?php else: ?>
+        <button class="p-add" data-add="<?= (int) $p['id'] ?>" <?= $outOfStock ? 'disabled' : '' ?> aria-label="Dodaj u košaricu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      <?php endif; ?>
     </div>
   </div>
 </article>

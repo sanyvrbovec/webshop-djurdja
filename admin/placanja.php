@@ -17,12 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $m = $pm->getMethod($code);
         if ($m) {
             $cfg = $m['config'];
-            if ($code === 'bank_transfer') {
-                $cfg['iban'] = strtoupper(preg_replace('/\s+/', '', (string) $_POST['iban']));
-                $cfg['recipient'] = mb_substr(trim((string) $_POST['recipient']), 0, 200);
-                $cfg['model'] = mb_substr(trim((string) $_POST['model']) ?: 'HR00', 0, 10);
-                $cfg['instructions'] = mb_substr(trim((string) $_POST['instructions']), 0, 500);
-            } elseif ($code === 'stripe') {
+            if ($code === 'stripe') {
                 $cfg['publishable_key'] = trim((string) $_POST['publishable_key']);
                 if (trim((string) $_POST['secret_key']) !== '') {
                     $cfg['secret_key_enc'] = Crypto::encrypt(trim((string) $_POST['secret_key']));
@@ -88,12 +83,7 @@ require __DIR__ . '/templates/header.php';
         </select></div>
       <div><label class="al">Iznos naknade</label><input class="ainput" type="number" step="0.01" name="fee_value" value="<?= e($m['fee_value']) ?>"></div>
 
-      <?php if ($m['code'] === 'bank_transfer'): ?>
-        <div><label class="al">IBAN</label><input class="ainput" name="iban" value="<?= e($cfg['iban'] ?? '') ?>" placeholder="HR12…"></div>
-        <div><label class="al">Primatelj (prazno = naziv firme iz đurđe)</label><input class="ainput" name="recipient" value="<?= e($cfg['recipient'] ?? '') ?>"></div>
-        <div><label class="al">Model</label><input class="ainput" name="model" value="<?= e($cfg['model'] ?? 'HR00') ?>"></div>
-        <div class="full"><label class="al">Upute kupcu</label><input class="ainput" name="instructions" value="<?= e($cfg['instructions'] ?? '') ?>"></div>
-      <?php elseif ($m['code'] === 'stripe'): ?>
+      <?php if ($m['code'] === 'stripe'): ?>
         <div class="full"><label class="al">Publishable key</label><input class="ainput" name="publishable_key" value="<?= e($cfg['publishable_key'] ?? '') ?>" placeholder="pk_live_… / pk_test_…"></div>
         <div><label class="al">Secret key <?= !empty($cfg['secret_key_enc']) ? '(spremljen: ' . e(Crypto::hint($cfg['secret_key_enc'])) . ')' : '' ?></label><input class="ainput" type="password" name="secret_key" placeholder="<?= !empty($cfg['secret_key_enc']) ? 'ostavi prazno = ne mijenjaj' : 'sk_live_… / sk_test_…' ?>"></div>
         <div><label class="al">Webhook secret <?= !empty($cfg['webhook_secret_enc']) ? '(spremljen)' : '' ?></label><input class="ainput" type="password" name="webhook_secret" placeholder="whsec_…"></div>
@@ -111,6 +101,26 @@ require __DIR__ . '/templates/header.php';
   </form>
   <?php if ($m['code'] === 'stripe' && !empty($cfg['secret_key_enc'])): ?>
     <form method="post" style="margin-top:10px"><?= csrf_field() ?><input type="hidden" name="action" value="stripe_test"><button class="abtn ghost sm">Test Stripe veze</button></form>
+  <?php endif; ?>
+
+  <?php if ($m['code'] === 'stripe'): ?>
+    <details style="margin-top:14px">
+      <summary style="cursor:pointer;font-weight:600;color:#4f46e5">📖 Vodič: kako doći do Stripe ključeva (korak po korak)</summary>
+      <div style="font-size:13.5px;line-height:1.75;color:#374151;padding:12px 4px 2px">
+        <p><strong>Što je Stripe?</strong> Servis koji omogućuje naplatu karticama (Visa, Mastercard). Besplatan je za otvaranje — naplaćuje samo proviziju po transakciji (~1,5 % + 0,25 € za EU kartice).</p>
+        <p><strong>1. Otvorite račun:</strong> idite na <a href="https://dashboard.stripe.com/register" target="_blank">dashboard.stripe.com/register</a>, upišite e-mail i lozinku. Potvrdite e-mail. Za primanje pravih uplata Stripe će tražiti podatke o firmi (OIB, IBAN) — to možete i kasnije.</p>
+        <p><strong>2. Pronađite ključeve:</strong> u Stripe sučelju kliknite <em>Developers</em> (gore desno) → <em>API keys</em>. Vidjet ćete dva ključa:</p>
+        <ul style="margin:4px 0 10px 18px">
+          <li><em>Publishable key</em> — počinje s <code>pk_test_</code> ili <code>pk_live_</code> → zalijepite ga gore u polje "Publishable key".</li>
+          <li><em>Secret key</em> — kliknite "Reveal", počinje s <code>sk_test_</code> ili <code>sk_live_</code> → zalijepite u "Secret key". <strong>Nikome ga ne šaljite.</strong></li>
+        </ul>
+        <p><strong>3. Postavite webhook</strong> (da trgovina automatski sazna kad je kartica naplaćena): <em>Developers → Webhooks → Add endpoint</em>. U polje "Endpoint URL" zalijepite:<br>
+        <code style="user-select:all"><?= e(SITE_URL . '/api/stripe-webhook.php') ?></code><br>
+        Pod "Select events" odaberite <code>checkout.session.completed</code> i kliknite "Add endpoint". Zatim na stranici webhooka kliknite "Reveal signing secret" (počinje s <code>whsec_</code>) → zalijepite gore u "Webhook secret".</p>
+        <p><strong>4. Testiranje:</strong> dok je uključen "Sandbox/test način" i koristite <code>pk_test_/sk_test_</code> ključeve, plaćanja su lažna — testna kartica je <code>4242 4242 4242 4242</code>, bilo koji datum u budućnosti i bilo koji CVC. Računi se tada fiskaliziraju u TEST modu (ne idu u pravu Poreznu).</p>
+        <p><strong>5. Prelazak na pravu naplatu:</strong> u Stripeu dovršite aktivaciju računa, prebacite se s "Test mode" na "Live", kopirajte <code>pk_live_/sk_live_</code> ključeve i NOVI live webhook secret, zalijepite ih ovdje i isključite kvačicu "Sandbox".</p>
+      </div>
+    </details>
   <?php endif; ?>
 </div>
 <?php endforeach; ?>

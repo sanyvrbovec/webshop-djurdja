@@ -50,6 +50,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             if ($count) flash('success', "Učitano slika: $count");
         }
+    } elseif ($action === 'variants') {
+        $rows = is_array($_POST['vr'] ?? null) ? $_POST['vr'] : [];
+        Variants::saveSet($id, (string) ($_POST['axis1_name'] ?? ''), (string) ($_POST['axis2_name'] ?? ''), $rows);
+        flash('success', 'Varijante spremljene.');
     } elseif ($action === 'img_delete') {
         $img = $db->fetch('SELECT * FROM product_images WHERE id = :i AND product_id = :p', [':i' => (int) $_POST['img_id'], ':p' => $id]);
         if ($img) {
@@ -67,6 +71,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $p = $db->fetch('SELECT p.*, c.name AS cat_name FROM products p LEFT JOIN categories c ON c.id = p.category_id WHERE p.id = :id', [':id' => $id]);
 $images = $db->fetchAll('SELECT * FROM product_images WHERE product_id = :p ORDER BY is_primary DESC, sort_order, id', [':p' => $id]);
+$variants = Variants::forProduct($id, false);
+$axis1Name = $variants[0]['option1_name'] ?? '';
+$axis2Name = '';
+foreach ($variants as $v) { if (!empty($v['option2_name'])) { $axis2Name = $v['option2_name']; break; } }
 
 $pageTitle = 'Proizvod: ' . $p['name'];
 require __DIR__ . '/templates/header.php';
@@ -123,6 +131,59 @@ require __DIR__ . '/templates/header.php';
   </div>
 </div>
 </form>
+
+<div class="acard" id="variants" style="margin-top:20px">
+  <h3>Varijante — veličine, boje… <span class="badge violet">lokalno u trgovini</span></h3>
+  <p class="sub">Đurđa vodi ovaj artikl kao jednu stavku (jedna cijena i ukupna zaliha). Varijante su dodatak trgovine:
+    kupac bira opciju, a vi po želji odredite drugačiju cijenu (prazno = osnovna <?= fmt_price($p['price']) ?>),
+    vlastitu zalihu po opciji (prazno = ne prati se) i SKU. Na računu se varijanta dodaje u opis stavke.</p>
+  <form method="post">
+    <?= csrf_field() ?><input type="hidden" name="action" value="variants">
+    <div class="aform-grid" style="margin-bottom:10px">
+      <div><label class="al">Naziv 1. opcije (npr. Veličina)</label><input class="ainput" name="axis1_name" maxlength="60" value="<?= e($axis1Name) ?>" placeholder="Veličina"></div>
+      <div><label class="al">Naziv 2. opcije (npr. Boja — opcionalno)</label><input class="ainput" name="axis2_name" maxlength="60" value="<?= e($axis2Name) ?>" placeholder="Boja"></div>
+    </div>
+    <table class="atable" id="var-table" style="font-size:13px">
+      <thead><tr><th>1. opcija *</th><th>2. opcija</th><th>SKU</th><th>Cijena €</th><th>Zaliha</th><th>Aktivna</th><th></th></tr></thead>
+      <tbody>
+        <?php foreach ($variants as $i => $v): ?>
+        <tr>
+          <td><input type="hidden" name="vr[<?= $i ?>][id]" value="<?= (int) $v['id'] ?>"><input class="ainput" name="vr[<?= $i ?>][option1_value]" maxlength="60" value="<?= e($v['option1_value']) ?>" required></td>
+          <td><input class="ainput" name="vr[<?= $i ?>][option2_value]" maxlength="60" value="<?= e($v['option2_value'] ?? '') ?>"></td>
+          <td><input class="ainput" name="vr[<?= $i ?>][sku]" maxlength="64" value="<?= e($v['sku'] ?? '') ?>"></td>
+          <td><input class="ainput" name="vr[<?= $i ?>][price]" inputmode="decimal" value="<?= $v['price'] !== null ? e(number_format((float) $v['price'], 2, '.', '')) : '' ?>" placeholder="<?= e(number_format((float) $p['price'], 2, '.', '')) ?>" style="max-width:110px"></td>
+          <td><input class="ainput" name="vr[<?= $i ?>][stock_qty]" inputmode="numeric" value="<?= $v['stock_qty'] !== null ? e(rtrim(rtrim(number_format((float) $v['stock_qty'], 2, '.', ''), '0'), '.')) : '' ?>" placeholder="∞" style="max-width:90px"></td>
+          <td style="text-align:center"><input type="checkbox" name="vr[<?= $i ?>][is_active]" value="1" <?= $v['is_active'] ? 'checked' : '' ?>></td>
+          <td><button type="button" class="abtn danger sm" onclick="this.closest('tr').remove()">✕</button></td>
+        </tr>
+        <?php endforeach; ?>
+      </tbody>
+    </table>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button type="button" class="abtn ghost sm" id="var-add">+ Dodaj varijantu</button>
+      <button class="abtn sm">💾 Spremi varijante</button>
+    </div>
+  </form>
+  <script>
+  (function () {
+    var idx = <?= count($variants) ?>;
+    document.getElementById('var-add').addEventListener('click', function () {
+      var tb = document.querySelector('#var-table tbody');
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td><input type="hidden" name="vr[' + idx + '][id]" value="0"><input class="ainput" name="vr[' + idx + '][option1_value]" maxlength="60" required></td>' +
+        '<td><input class="ainput" name="vr[' + idx + '][option2_value]" maxlength="60"></td>' +
+        '<td><input class="ainput" name="vr[' + idx + '][sku]" maxlength="64"></td>' +
+        '<td><input class="ainput" name="vr[' + idx + '][price]" inputmode="decimal" placeholder="<?= e(number_format((float) $p['price'], 2, '.', '')) ?>" style="max-width:110px"></td>' +
+        '<td><input class="ainput" name="vr[' + idx + '][stock_qty]" inputmode="numeric" placeholder="∞" style="max-width:90px"></td>' +
+        '<td style="text-align:center"><input type="checkbox" name="vr[' + idx + '][is_active]" value="1" checked></td>' +
+        '<td><button type="button" class="abtn danger sm" onclick="this.closest(\'tr\').remove()">✕</button></td>';
+      tb.appendChild(tr);
+      idx++;
+    });
+  })();
+  </script>
+</div>
 
 <?php if ($images): ?>
 <div class="acard">

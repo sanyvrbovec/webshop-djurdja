@@ -68,7 +68,7 @@ hr{border:0;border-top:1px dashed #999}
   <thead><tr><th>Artikl</th><th class="num">Kol.</th><th class="num">Cijena</th><th class="num">Iznos</th></tr></thead>
   <tbody>
   <?php foreach ($items as $it): ?>
-    <tr><td><?= e($it['name']) ?></td><td class="num"><?= (int) $it['quantity'] ?></td><td class="num"><?= number_format((float) $it['unit_price'], 2, ',', '.') ?></td><td class="num"><?= number_format((float) $it['total'], 2, ',', '.') ?></td></tr>
+    <tr><td><?= e($it['name']) ?><?= !empty($it['variant_label']) ? '<br><span class="muted">' . e($it['variant_label']) . '</span>' : '' ?></td><td class="num"><?= (int) $it['quantity'] ?></td><td class="num"><?= number_format((float) $it['unit_price'], 2, ',', '.') ?></td><td class="num"><?= number_format((float) $it['total'], 2, ',', '.') ?></td></tr>
   <?php endforeach; ?>
   <?php if ((float) $order['shipping_cost'] > 0): ?><tr><td>Dostava</td><td class="num">1</td><td class="num"><?= number_format((float) $order['shipping_cost'], 2, ',', '.') ?></td><td class="num"><?= number_format((float) $order['shipping_cost'], 2, ',', '.') ?></td></tr><?php endif; ?>
   <?php if ((float) $order['payment_fee'] > 0): ?><tr><td>Naknada plaćanja</td><td class="num">1</td><td class="num"><?= number_format((float) $order['payment_fee'], 2, ',', '.') ?></td><td class="num"><?= number_format((float) $order['payment_fee'], 2, ',', '.') ?></td></tr><?php endif; ?>

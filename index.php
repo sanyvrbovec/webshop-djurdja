@@ -12,7 +12,8 @@ $categories = array_values(array_filter($categories, fn($c) => (int) $c['cnt'] >
 
 $featured = $db->fetchAll(
     'SELECT p.*, c.name AS cat_name,
-        (SELECT filename FROM product_images pi WHERE pi.product_id = p.id ORDER BY pi.is_primary DESC, pi.sort_order LIMIT 1) AS image
+        (SELECT filename FROM product_images pi WHERE pi.product_id = p.id ORDER BY pi.is_primary DESC, pi.sort_order LIMIT 1) AS image,
+        (SELECT COUNT(*) FROM product_variants pv WHERE pv.product_id = p.id AND pv.is_active = 1) AS has_variants
      FROM products p LEFT JOIN categories c ON c.id = p.category_id
      WHERE p.is_visible = 1 AND p.is_orphaned = 0
      ORDER BY p.is_featured DESC, p.created_at DESC LIMIT 8'
@@ -80,7 +81,7 @@ require __DIR__ . '/includes/header.php';
       </div>
       <div class="usp">
         <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
-        <div><h4>Sigurna kupovina</h4><p>Plaćanje pouzećem, virmanom ili karticom — bez skrivenih troškova.</p></div>
+        <div><h4>Sigurna kupovina</h4><p>Plaćanje pouzećem ili karticom — bez skrivenih troškova.</p></div>
       </div>
       <div class="usp">
         <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>

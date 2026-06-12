@@ -9,6 +9,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'sort_order' => (int) $sort,
                 'is_visible' => isset($_POST['visible'][$cid]) ? 1 : 0,
                 'description' => mb_substr(trim((string) ($_POST['descr'][$cid] ?? '')), 0, 500) ?: null,
+                'seo_title' => mb_substr(trim((string) ($_POST['seot'][$cid] ?? '')), 0, 190) ?: null,
+                'seo_description' => mb_substr(trim((string) ($_POST['seod'][$cid] ?? '')), 0, 300) ?: null,
             ], 'id = :id', [':id' => (int) $cid]);
         }
         flash('success', 'Kategorije spremljene.');
@@ -38,7 +40,11 @@ require __DIR__ . '/templates/header.php';
           <td><code style="font-size:12px">/k/<?= e($c['slug']) ?></code></td>
           <td class="num"><?= (int) $c['cnt'] ?></td>
           <td><input type="checkbox" name="visible[<?= (int) $c['id'] ?>]" <?= $c['is_visible'] ? 'checked' : '' ?> style="accent-color:#7c3aed;width:18px;height:18px"></td>
-          <td><input class="ainput" name="descr[<?= (int) $c['id'] ?>]" value="<?= e($c['description'] ?? '') ?>" placeholder="Kratki opis za SEO…"></td>
+          <td style="display:grid;gap:6px;min-width:260px">
+            <input class="ainput" name="descr[<?= (int) $c['id'] ?>]" value="<?= e($c['description'] ?? '') ?>" placeholder="Opis kategorije (prikazuje se i u SEO)…">
+            <input class="ainput" name="seot[<?= (int) $c['id'] ?>]" value="<?= e($c['seo_title'] ?? '') ?>" placeholder="SEO naslov (prazno = naziv)" maxlength="190" style="font-size:12.5px">
+            <input class="ainput" name="seod[<?= (int) $c['id'] ?>]" value="<?= e($c['seo_description'] ?? '') ?>" placeholder="SEO opis (prazno = opis gore)" maxlength="300" style="font-size:12.5px">
+          </td>
         </tr>
       <?php endforeach; ?>
       <?php if (!$cats): ?><tr><td colspan="6" style="text-align:center;color:#9ca3af;padding:30px">Nema kategorija — pokrenite <a href="<?= e(adminUrl('sync.php')) ?>">sinkronizaciju</a>.</td></tr><?php endif; ?>

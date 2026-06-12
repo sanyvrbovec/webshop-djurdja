@@ -5,6 +5,22 @@
  */
 $pageTitle = $pageTitle ?? '';
 $pageDesc = $pageDesc ?? '';
+
+// Plan-gate: paket bez WEBSHOP prava → izlog zaključan (admin i dalje radi)
+if (!Djurdja::shopAllowed()) {
+    http_response_code(503);
+    header('Retry-After: 3600');
+    echo '<!doctype html><html lang="hr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+        . '<meta name="robots" content="noindex"><title>Trgovina trenutno nije dostupna</title>'
+        . '<body style="margin:0;font-family:system-ui,sans-serif;background:#f8fafc;display:grid;place-items:center;min-height:100vh">'
+        . '<div style="max-width:460px;padding:40px;text-align:center"><div style="font-size:44px">🔒</div>'
+        . '<h1 style="font-size:22px;color:#0f172a">Trgovina trenutno nije dostupna</h1>'
+        . '<p style="color:#475569;font-size:15px;line-height:1.6">Web trgovina nije uključena u trenutni paket vlasnika. '
+        . 'Vlasniče, prijavite se na <a href="https://mojadjurdja.com/cjenik?utm_source=webshop&utm_medium=lock" style="color:#4f46e5">mojadjurdja.com</a> i nadogradite paket.</p>'
+        . '</div></body></html>';
+    exit;
+}
+
 $company = Djurdja::company();
 $logoFile = s('logo');
 $navPages = $db->fetchAll('SELECT slug, title FROM pages WHERE is_visible = 1 AND in_nav = 1 ORDER BY sort_order, id');

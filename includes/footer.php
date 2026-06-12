@@ -34,7 +34,7 @@ $djLink = 'https://mojadjurdja.com/?utm_source=webshop&utm_medium=footer&utm_cam
         <ul>
           <li><a href="<?= e(url('proizvodi.php')) ?>">Svi proizvodi</a></li>
           <li><a href="<?= e(url('kosarica.php')) ?>">Košarica</a></li>
-          <li>Plaćanje: pouzeće, virman<?php if ((new PaymentManager())->getMethod('stripe')['is_active'] ?? 0): ?>, kartice<?php endif; ?></li>
+          <li>Plaćanje: pouzeće<?php if ((new PaymentManager())->getMethod('stripe')['is_active'] ?? 0): ?>, kartice<?php endif; ?></li>
           <li>Račun (fiskaliziran) uz svaku kupnju</li>
         </ul>
       </div>
