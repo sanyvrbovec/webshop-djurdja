@@ -255,11 +255,16 @@ class Djurdja
         }
     }
 
-    /** Heartbeat (registracija instalacije) — najviše jednom u 24 h, best-effort. */
+    /**
+     * Heartbeat (registracija u đurđi). 24-satna brana vrijedi SAMO nakon
+     * uspješne registracije — neuspjeli pokušaji (404 prije deploya rute,
+     * 500 bez api_shops tablice…) se ponavljaju na svakom refreshu dok ne
+     * prođe, pa se trgovina sama pojavi u đurđi čim server bude spreman.
+     */
     private static function maybeHeartbeat(DjurdjaClient $client): void
     {
         $last = strtotime((string) Settings::get('djurdja_heartbeat_at', ''));
-        if ($last && (time() - $last) < 24 * 3600) return;
+        if (Settings::get('djurdja_heartbeat_ok') === '1' && $last && (time() - $last) < 24 * 3600) return;
         try {
             $resp = $client->heartbeat([
                 'domain'   => $_SERVER['HTTP_HOST'] ?? php_uname('n'),
@@ -271,14 +276,9 @@ class Djurdja
                 Settings::set('djurdja_shop_status', $resp['status']);
             }
             Settings::set('djurdja_heartbeat_at', date('Y-m-d H:i:s'));
-        } catch (DjurdjaApiException $e) {
-            if ($e->httpStatus === 404) {
-                // backend još nema heartbeat — ne smatraj greškom
-                Settings::set('djurdja_heartbeat_at', date('Y-m-d H:i:s'));
-            } else {
-                error_log('[Djurdja::heartbeat] ' . $e->getMessage());
-            }
+            Settings::set('djurdja_heartbeat_ok', '1');
         } catch (Throwable $e) {
+            Settings::set('djurdja_heartbeat_ok', '0');
             error_log('[Djurdja::heartbeat] ' . $e->getMessage());
         }
     }

@@ -130,8 +130,10 @@ class Theme
             'cta_text' => $h['cta_text'] ?? 'Razgledaj ponudu',
             'cta_link' => $h['cta_link'] ?? url('proizvodi.php'),
             'image'    => $h['image'] ?? null,
-            'align'    => in_array($h['align'] ?? '', ['center', 'left'], true) ? $h['align'] : 'center',
+            'align'    => in_array($h['align'] ?? '', ['center', 'left'], true) ? $h['align'] : 'left',
             'overlay'  => max(0, min(85, (int) ($h['overlay'] ?? 45))), // zatamnjenje slike u %
+            'height'   => in_array($h['height'] ?? '', ['compact', 'normal', 'full'], true) ? $h['height'] : 'normal',
+            'parallax' => !empty($h['parallax']) ? 1 : 0,
         ];
     }
 

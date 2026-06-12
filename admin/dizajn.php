@@ -50,8 +50,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'cta_text' => mb_substr(trim((string) $_POST['cta_text']) ?: 'Razgledaj ponudu', 0, 50),
             'cta_link' => mb_substr(trim((string) $_POST['cta_link']) ?: url('proizvodi.php'), 0, 250),
             'image'    => Theme::hero()['image'],
-            'align'    => ($_POST['align'] ?? '') === 'left' ? 'left' : 'center',
+            'align'    => ($_POST['align'] ?? '') === 'center' ? 'center' : 'left',
             'overlay'  => max(0, min(85, (int) ($_POST['overlay'] ?? 45))),
+            'height'   => in_array($_POST['height'] ?? '', ['compact', 'normal', 'full'], true) ? $_POST['height'] : 'normal',
+            'parallax' => !empty($_POST['parallax']) ? 1 : 0,
         ];
         if (!empty($_FILES['hero_image']['name'])) {
             $v = Security::validateImageUpload($_FILES['hero_image']);
@@ -170,10 +172,17 @@ require __DIR__ . '/templates/header.php';
     <div><label class="al">Mala oznaka iznad naslova (prazno = bez oznake)</label><input class="ainput" name="eyebrow" maxlength="90" value="<?= e($hero['eyebrow']) ?>" placeholder="✓ Fiskalizirani račun uz svaku kupnju"></div>
     <div><label class="al">Poravnanje teksta</label>
       <select class="ainput" name="align">
-        <option value="center" <?= $hero['align'] === 'center' ? 'selected' : '' ?>>Sredina</option>
         <option value="left" <?= $hero['align'] === 'left' ? 'selected' : '' ?>>Lijevo</option>
+        <option value="center" <?= $hero['align'] === 'center' ? 'selected' : '' ?>>Sredina</option>
+      </select></div>
+    <div><label class="al">Visina hero sekcije</label>
+      <select class="ainput" name="height">
+        <option value="compact" <?= $hero['height'] === 'compact' ? 'selected' : '' ?>>Smanjeno (kompaktno)</option>
+        <option value="normal" <?= $hero['height'] === 'normal' ? 'selected' : '' ?>>Normalno</option>
+        <option value="full" <?= $hero['height'] === 'full' ? 'selected' : '' ?>>Preko cijelog ekrana</option>
       </select></div>
     <div><label class="al">Zatamnjenje fotografije (%) — čitljivost teksta</label><input class="ainput" type="number" min="0" max="85" name="overlay" value="<?= (int) $hero['overlay'] ?>"></div>
+    <div style="display:flex;align-items:end"><label class="acheck" style="margin:0"><input type="checkbox" name="parallax" <?= $hero['parallax'] ? 'checked' : '' ?>> Parallax efekt (slika "stoji" dok se stranica miče; na mobitelu se automatski isključuje)</label></div>
     <div class="full"><label class="al">Naslov (prazno = "Dobrodošli u …")</label><input class="ainput" name="title" maxlength="120" value="<?= e($hero['title']) ?>"></div>
     <div class="full"><label class="al">Podnaslov</label><input class="ainput" name="subtitle" maxlength="250" value="<?= e($hero['subtitle']) ?>"></div>
     <div><label class="al">Tekst gumba</label><input class="ainput" name="cta_text" maxlength="50" value="<?= e($hero['cta_text']) ?>"></div>

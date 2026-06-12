@@ -243,6 +243,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ];
                 foreach ($settings as $k => $v) $ins->execute([$k, $v]);
 
+                // 4b. Zadana hero fotografija — trgovina odmah izgleda dovršeno
+                if (is_file($ROOT . '/assets/img/hero-default.png')
+                    && @copy($ROOT . '/assets/img/hero-default.png', $ROOT . '/uploads/theme/hero-default.png')) {
+                    $ins->execute(['hero', json_encode([
+                        'style' => 'image', 'image' => 'hero-default.png',
+                        'overlay' => 45, 'height' => 'normal', 'align' => 'left', 'parallax' => 0,
+                    ])]);
+                }
+
                 // 5. Admin korisnik
                 $pdo->prepare('INSERT INTO admin_users (username, email, password_hash) VALUES (?, ?, ?)')
                     ->execute([$adminUser, $adminEmail, password_hash($pass1, PASSWORD_DEFAULT)]);

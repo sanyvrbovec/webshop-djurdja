@@ -26,7 +26,7 @@ $heroTitle = $hero['title'] !== '' ? $hero['title'] : ('Dobrodošli u ' . shop_n
 require __DIR__ . '/includes/header.php';
 ?>
 
-<section class="hero <?= $hero['style'] === 'image' && $hero['image'] ? 'hero-image' : ($hero['style'] === 'minimal' ? 'hero-minimal' : 'hero-gradient') ?> <?= $hero['align'] === 'left' ? 'hero-left' : '' ?>"
+<section class="hero <?= $hero['style'] === 'image' && $hero['image'] ? 'hero-image' : ($hero['style'] === 'minimal' ? 'hero-minimal' : 'hero-gradient') ?> <?= $hero['align'] === 'center' ? 'hero-center' : '' ?> hero-h-<?= e($hero['height']) ?> <?= $hero['parallax'] && $hero['style'] === 'image' ? 'hero-parallax' : '' ?>"
   <?php if ($hero['style'] === 'image' && $hero['image']): $op = number_format($hero['overlay'] / 100, 2, '.', ''); ?>
     style="background-image:linear-gradient(rgba(10,14,26,<?= $op ?>),rgba(10,14,26,<?= $op ?>)),url('<?= e(upload_url('theme/' . $hero['image'])) ?>')"
   <?php endif; ?>>
