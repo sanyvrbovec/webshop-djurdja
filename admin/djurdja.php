@@ -46,13 +46,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         Settings::set('business_space', mb_substr(trim((string) $_POST['business_space']) ?: 'WEBSHOP', 0, 20));
         Settings::set('cash_register', mb_substr(trim((string) $_POST['cash_register']) ?: '1', 0, 20));
         Settings::set('shipping_vat_rate', (string) max(0, min(25, (float) $_POST['shipping_vat_rate'])));
-        $map = [];
-        foreach (['cod', 'stripe', 'bank_transfer'] as $code) {
-            $v = (string) ($_POST["map_$code"] ?? '');
-            if (in_array($v, ['G', 'K', 'T', 'C', 'O'], true)) $map[$code] = $v;
-        }
-        Settings::setJson('fiscal_payment_mapping', $map);
         flash('success', 'Fiskalne postavke spremljene.');
+    } elseif ($action === 'mock_off') {
+        $cfgFile = SHOP_ROOT . '/config/config.php';
+        $src = (string) @file_get_contents($cfgFile);
+        if ($src !== '' && is_writable($cfgFile)) {
+            @copy($cfgFile, SHOP_ROOT . '/config/config.bak.php');
+            $new = preg_replace("/define\\(\\s*'DJURDJA_MOCK'\\s*,\\s*true\\s*\\)/i", "define('DJURDJA_MOCK', false)", $src, 1, $cnt);
+            if ($cnt > 0 && file_put_contents($cfgFile, $new) !== false) {
+                flash('success', 'Simulacija isključena ✓ — sada unesite PRAVI API ključ (pk_/sk_) i kliknite "Provjeri i spremi ključ".');
+            } else {
+                flash('error', 'Automatska izmjena nije uspjela — otvorite config/config.php i ručno postavite DJURDJA_MOCK na false.');
+            }
+        } else {
+            flash('error', 'config/config.php nije zapisiv — ručno postavite DJURDJA_MOCK na false.');
+        }
     }
     redirect('admin/djurdja.php');
 }
@@ -62,7 +70,6 @@ $account = Djurdja::account();
 $quota = Djurdja::quota();
 $status = Djurdja::status();
 $client = DjurdjaClient::fromSettings();
-$mapping = Settings::getJson('fiscal_payment_mapping');
 $mockMode = defined('DJURDJA_MOCK') && DJURDJA_MOCK;
 
 $statusInfo = [
@@ -75,7 +82,15 @@ $statusInfo = [
 $pageTitle = 'Đurđa veza';
 require __DIR__ . '/templates/header.php';
 ?>
-<?php if ($mockMode): ?><div class="alert alert-warning">⚠ <strong>MOCK NAČIN</strong> — đurđa API se simulira lokalno (DJURDJA_MOCK=true u config.php). Za produkciju isključite mock i unesite pravi ključ.</div><?php endif; ?>
+<?php if ($mockMode): ?>
+<div class="alert alert-warning" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+  <span>⚠ <strong>SIMULACIJA (MOCK)</strong> — đurđa API se simulira lokalno: artikli su probni, a JIR-ovi na računima <strong>nisu pravi</strong>. Za rad s vašim podacima isključite simulaciju.</span>
+  <form method="post" onsubmit="return confirm('Isključiti simulaciju? Nakon toga trgovina radi isključivo s pravim MojaĐurđa računom (trebat će vam API ključ).')" style="margin-left:auto">
+    <?= csrf_field() ?><input type="hidden" name="action" value="mock_off">
+    <button class="abtn sm">🔌 Isključi simulaciju</button>
+  </form>
+</div>
+<?php endif; ?>
 
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
   <div style="display:grid;gap:20px">
@@ -113,7 +128,17 @@ require __DIR__ . '/templates/header.php';
       <?php else: ?>
         <p class="sub">Kvota nije dostupna / neograničeno.</p>
       <?php endif; ?>
-      <?php if (Djurdja::brandingRequired()): ?><p style="font-size:12.5px;color:#6b7280;margin:0 0 10px">Besplatni plan uključuje "Pokreće MojaĐurđa" link u podnožju trgovine.</p><?php endif; ?>
+      <?php if (Djurdja::brandingRequired()): ?>
+        <div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:10px;padding:12px 14px;margin:0 0 12px">
+          <strong style="font-size:13px;color:#5b21b6">Što dobivate u plaćenom paketu:</strong>
+          <ul style="margin:6px 0 0;padding-left:18px;font-size:12.5px;color:#4c1d95;line-height:1.8">
+            <li>Bez "Pokreće MojaĐurđa" linka u podnožju trgovine</li>
+            <li>Računi kupcima <strong>bez</strong> MojaĐurđa potpisa + <strong>vaš logo</strong> na računu</li>
+            <li>Vlastiti CSS i prilagodba predložaka (kartica Dizajn)</li>
+            <li>Veća mjesečna kvota fiskaliziranih dokumenata</li>
+          </ul>
+        </div>
+      <?php endif; ?>
       <a class="abtn sm" target="_blank" href="https://mojadjurdja.com/cjenik?utm_source=webshop&utm_medium=admin&utm_campaign=connection">Nadogradi paket ↗</a>
     </div>
   </div>
@@ -143,19 +168,7 @@ require __DIR__ . '/templates/header.php';
           <div><label class="al">Naplatni uređaj</label><input class="ainput" name="cash_register" value="<?= e(s('cash_register', '1')) ?>"></div>
           <div><label class="al">PDV na dostavu (%)</label><input class="ainput" type="number" step="0.01" name="shipping_vat_rate" value="<?= e(s('shipping_vat_rate', '25')) ?>"></div>
         </div>
-        <p class="sub" style="margin-top:12px">Oznaka načina plaćanja prema Poreznoj (G=gotovina, K=kartica, T=transakcijski, O=ostalo):</p>
-        <div class="aform-grid">
-          <?php
-          $defaults = ['cod' => 'G', 'stripe' => 'K', 'bank_transfer' => 'T'];
-          foreach (['cod' => 'Pouzeće', 'stripe' => 'Kartice', 'bank_transfer' => 'Virman'] as $code => $label): ?>
-            <div><label class="al"><?= e($label) ?></label>
-              <select class="ainput" name="map_<?= $code ?>">
-                <?php foreach (['G', 'K', 'T', 'C', 'O'] as $f): ?>
-                  <option value="<?= $f ?>" <?= ($mapping[$code] ?? $defaults[$code]) === $f ? 'selected' : '' ?>><?= $f ?></option>
-                <?php endforeach; ?>
-              </select></div>
-          <?php endforeach; ?>
-        </div>
+        <p class="sub" style="margin-top:12px">Oznake plaćanja prema Poreznoj su automatske: kartice (Stripe) = K, pouzeće = G.</p>
         <button class="abtn" style="margin-top:14px">💾 Spremi fiskalne postavke</button>
       </form>
     </div>

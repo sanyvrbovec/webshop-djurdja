@@ -14,6 +14,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'show_djurdja_credit' => !empty($_POST['show_djurdja_credit']) ? '1' : '0',
         ]);
         flash('success', 'Postavke spremljene.');
+    } elseif ($action === 'reset') {
+        if (trim((string) ($_POST['confirm_text'] ?? '')) !== 'OBRIŠI') {
+            flash('error', 'Za potvrdu upišite točno: OBRIŠI (velikim slovima).');
+        } else {
+            $liveCnt = (int) $db->fetchColumn(
+                "SELECT COUNT(*) FROM orders WHERE fiscal_mode = 'live' AND fiscal_status IN ('fiscalized','stornoed')"
+            );
+            if ($liveCnt > 0 && empty($_POST['confirm_live'])) {
+                flash('error', "STOP: postoje $liveCnt LIVE fiskalizirana računa — to je zakonska dokumentacija (čuvanje 11 godina). Prvo ih ispišite/arhivirajte, pa označite dodatnu potvrdu.");
+            } else {
+                $pdo = $db->pdo();
+                $pdo->exec('SET FOREIGN_KEY_CHECKS=0');
+                foreach (['fiscal_log', 'payment_transactions', 'order_items', 'orders', 'sync_log', 'login_attempts'] as $t) {
+                    $pdo->exec("TRUNCATE TABLE `$t`");
+                }
+                if (!empty($_POST['wipe_catalog'])) {
+                    foreach ($db->fetchAll('SELECT filename FROM product_images') as $im) {
+                        @unlink(SHOP_ROOT . '/uploads/products/' . $im['filename']);
+                    }
+                    foreach (['product_images', 'product_variants', 'products', 'categories'] as $t) {
+                        $pdo->exec("TRUNCATE TABLE `$t`");
+                    }
+                    Settings::set('catalog_synced_at', null);
+                }
+                if (!empty($_POST['wipe_newsletter'])) {
+                    $pdo->exec('TRUNCATE TABLE newsletter_subscribers');
+                }
+                $pdo->exec('SET FOREIGN_KEY_CHECKS=1');
+                Settings::set('quota_warned_for', null);
+                flash('success', 'Trgovina vraćena na nulu ✓ Narudžbe i računi obrisani, brojač kreće od 1.'
+                    . (!empty($_POST['wipe_catalog']) ? ' Pokrenite Sinkronizaciju za ponovno povlačenje artikala iz đurđe.' : ''));
+            }
+        }
     } elseif ($action === 'password') {
         $cur = (string) $_POST['current'];
         $new = (string) $_POST['new'];
@@ -79,5 +112,22 @@ require __DIR__ . '/templates/header.php';
       <p class="sub" style="margin-top:10px">Cron pozivajte svakih 5–15 minuta (hosting "Cron Jobs" ili vanjski servis poput cron-job.org) — pokreće fiskalne retry-e, dnevni sync i osvježavanje veze.</p>
     </div>
   </div>
+</div>
+
+<div class="acard" style="margin-top:20px;border-color:#fecaca">
+  <h3 style="color:#b91c1c">🧨 Opasna zona — vrati trgovinu na nulu</h3>
+  <p class="sub">Briše <strong>sve narudžbe, račune, transakcije i logove</strong> (brojevi narudžbi kreću od početka).
+    Namijenjeno za kraj testne faze, prije pravog pokretanja. Đurđa veza, dizajn i postavke ostaju netaknuti.<br>
+    <strong style="color:#b91c1c">Upozorenje:</strong> LIVE fiskalizirani računi su zakonska dokumentacija — njih brišite samo ako znate što radite.</p>
+  <form method="post" onsubmit="return confirm('Zadnja provjera: obrisati sve narudžbe i račune? Ovo je nepovratno.')">
+    <?= csrf_field() ?><input type="hidden" name="action" value="reset">
+    <label class="acheck"><input type="checkbox" name="wipe_catalog" value="1"> Obriši i katalog (artikli, varijante, kategorije, slike) — vraća se sinkronizacijom iz đurđe</label>
+    <label class="acheck"><input type="checkbox" name="wipe_newsletter" value="1"> Obriši i newsletter pretplatnike</label>
+    <label class="acheck"><input type="checkbox" name="confirm_live" value="1"> Svjestan/na sam da se brišu i eventualni LIVE fiskalizirani računi</label>
+    <div style="display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap">
+      <input class="ainput" name="confirm_text" placeholder="Za potvrdu upišite: OBRIŠI" style="max-width:240px" autocomplete="off">
+      <button class="abtn danger">🧨 Vrati na nulu</button>
+    </div>
+  </form>
 </div>
 <?php require __DIR__ . '/templates/footer.php'; ?>

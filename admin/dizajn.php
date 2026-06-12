@@ -14,7 +14,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'accent'    => preg_match('/^#[0-9a-f]{6}$/i', $_POST['accent'] ?? '') && !empty($_POST['use_custom']) ? $_POST['accent'] : null,
             'font_pair' => isset(Theme::FONT_PAIRS[$_POST['font_pair'] ?? '']) ? $_POST['font_pair'] : 'system',
             'radius'    => in_array($_POST['radius'] ?? '', ['none', 'soft', 'round'], true) ? $_POST['radius'] : 'soft',
-            'custom_css'=> mb_substr((string) ($_POST['custom_css'] ?? ''), 0, 20000),
+            // Vlastiti CSS je pogodnost plaćenog plana — na besplatnom čuvamo staru vrijednost
+            'custom_css'=> Djurdja::customizationAllowed()
+                ? mb_substr((string) ($_POST['custom_css'] ?? ''), 0, 20000)
+                : (string) (Settings::getJson('theme')['custom_css'] ?? ''),
         ];
         Settings::setJson('theme', $theme);
 
@@ -122,8 +125,15 @@ require __DIR__ . '/templates/header.php';
     </div>
   </div>
 
-  <label class="al" style="margin-top:10px">Napredno: vlastiti CSS</label>
-  <textarea class="ainput" name="custom_css" rows="4" placeholder=".hero h1 { text-transform: uppercase; }"><?= e($theme['custom_css']) ?></textarea>
+  <?php if (Djurdja::customizationAllowed()): ?>
+    <label class="al" style="margin-top:10px">Napredno: vlastiti CSS <span class="badge violet">plaćeni plan</span></label>
+    <textarea class="ainput" name="custom_css" rows="4" placeholder=".hero h1 { text-transform: uppercase; }"><?= e($theme['custom_css']) ?></textarea>
+  <?php else: ?>
+    <label class="al" style="margin-top:10px">Napredno: vlastiti CSS <span class="badge amber">🔒 plaćeni plan</span></label>
+    <textarea class="ainput" rows="3" disabled placeholder="Vlastiti CSS i prilagodba predložaka dostupni su u plaćenim paketima."></textarea>
+    <p class="sub" style="margin-top:6px">Otključajte vlastiti CSS, uklanjanje MojaĐurđa potpisa i logo na računima —
+      <a href="https://mojadjurdja.com/cjenik?utm_source=webshop&utm_medium=design&utm_campaign=customcss" target="_blank">pogledajte pakete ↗</a></p>
+  <?php endif; ?>
   <button class="abtn" style="margin-top:16px">💾 Spremi temu</button>
 </div>
 </form>

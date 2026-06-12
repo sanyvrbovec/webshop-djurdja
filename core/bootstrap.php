@@ -4,7 +4,7 @@
  * Uključuje ga svaka javna stranica, API endpoint i admin init.
  */
 
-define('SHOP_VERSION', '1.0.0');
+define('SHOP_VERSION', '1.1.0');
 define('SHOP_ROOT', dirname(__DIR__));
 
 // ── 1. Config (ako ne postoji → installer) ──
@@ -117,7 +117,11 @@ function url(string $path = ''): string
 
 function asset(string $path): string
 {
-    return url('assets/' . ltrim($path, '/')) . '?v=' . SHOP_VERSION;
+    // Cache-busting po datumu izmjene datoteke: svaka promjena CSS/JS-a se
+    // odmah vidi BEZ čišćenja browser keša (i bez ručnog bumpanja verzije).
+    $f = SHOP_ROOT . '/assets/' . ltrim($path, '/');
+    $v = is_file($f) ? (string) filemtime($f) : SHOP_VERSION;
+    return url('assets/' . ltrim($path, '/')) . '?v=' . $v;
 }
 
 function upload_url(string $path): string

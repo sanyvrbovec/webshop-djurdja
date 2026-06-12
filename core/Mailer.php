@@ -173,8 +173,10 @@ class Mailer
             ? '<div style="border:2px solid #dc2626;color:#dc2626;padding:10px;border-radius:8px;margin:0 0 14px;font-weight:bold;text-align:center">STORNIRANO — storno račun br. ' . e($order['fiscal_storno_receipt_number']) . '</div>'
             : '';
 
+        $logo = Djurdja::receiptLogoUrl();
         $html = $testWarn . $stornoWarn
             . '<div style="text-align:center;margin-bottom:14px">'
+            . ($logo ? '<img src="' . e($logo) . '" alt="" style="max-height:64px;max-width:200px;margin:0 auto 8px;display:block">' : '')
             . '<h2 style="margin:0">' . e($company['companyName'] ?? shop_name()) . '</h2>'
             . '<div style="color:#6b7280;font-size:12.5px">'
             . (!empty($company['address']) ? e($company['address']) . ', ' . e($company['postalCode'] ?? '') . ' ' . e($company['city'] ?? '') . '<br>' : '')
@@ -192,7 +194,10 @@ class Mailer
             . '<strong>FISKALNI PODACI</strong><br>JIR: ' . e($order['fiscal_jir']) . '<br>ZKI: ' . e($order['fiscal_zki'])
             . ($order['fiscal_qr'] ? '<br>Provjera računa: <a href="' . e($order['fiscal_qr']) . '">' . e($order['fiscal_qr']) . '</a>' : '')
             . '</div>'
-            . '<p style="color:#9ca3af;font-size:12px;text-align:center">Hvala na kupnji! · ' . e(shop_name()) . '</p>';
+            . '<p style="color:#9ca3af;font-size:12px;text-align:center">Hvala na kupnji! · ' . e(shop_name()) . '</p>'
+            . (Djurdja::brandingRequired()
+                ? '<p style="color:#9ca3af;font-size:11.5px;text-align:center;border-top:1px solid #f3f4f6;padding-top:10px">Račun izdan putem besplatnog sustava <a href="https://mojadjurdja.com/?utm_source=webshop&utm_medium=receipt&utm_campaign=poweredby" style="color:#6b7280">MojaĐurđa</a></p>'
+                : '');
 
         return self::send(
             $order['customer_email'],

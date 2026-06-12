@@ -96,7 +96,9 @@ class Theme
             . '--is-dark:' . ($t['dark'] ? '1' : '0') . ';}'
             . ($t['dark'] ? 'html{color-scheme:dark}' : '')
             . '</style>';
-        if ($t['custom_css'] !== '') {
+        // Vlastiti CSS je pogodnost PLAĆENOG plana — server-side enforcement
+        // (i ako je spremljen ranije, na besplatnom planu se ne isporučuje).
+        if ($t['custom_css'] !== '' && Djurdja::customizationAllowed()) {
             $out .= '<style>/* custom */' . str_replace('</', '<\/', $t['custom_css']) . '</style>';
         }
         return $out;

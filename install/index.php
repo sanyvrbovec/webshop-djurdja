@@ -13,13 +13,41 @@ $configFile = $ROOT . '/config/config.php';
 $lockFile = __DIR__ . '/.lock';
 
 // ── Guard: već instalirano ──
+// Bitno: provjeravamo RADI li baza iz configa, jer je najčešća greška da
+// korisnik prenese datoteke s localhosta ZAJEDNO s config.php (+ .lock) —
+// tada svaka stranica vraća 500, a installer mora objasniti što napraviti.
 if (file_exists($configFile)) {
-    if (file_exists($lockFile)) {
-        http_response_code(403);
-        die('<!doctype html><meta charset="utf-8"><body style="font-family:sans-serif;padding:40px"><h2>Trgovina je već instalirana.</h2><p>Iz sigurnosnih razloga obrišite cijeli <code>install/</code> direktorij sa servera.</p></body>');
+    $dbWorks = false;
+    $dbErr = '';
+    try {
+        require $configFile;
+        new PDO('mysql:host=' . DB_HOST . ';dbname=' . DB_NAME . ';charset=utf8mb4', DB_USER, DB_PASS, [PDO::ATTR_TIMEOUT => 4]);
+        $dbWorks = true;
+    } catch (Throwable $e) {
+        $dbErr = $e->getMessage();
     }
+
     http_response_code(403);
-    die('<!doctype html><meta charset="utf-8"><body style="font-family:sans-serif;padding:40px"><h2>Pronađen je postojeći config/config.php.</h2><p>Ako želite ponovnu instalaciju, ručno obrišite <code>config/config.php</code> (i bazu ako je potrebno), pa osvježite ovu stranicu.</p></body>');
+    if ($dbWorks) {
+        die('<!doctype html><meta charset="utf-8"><body style="font-family:sans-serif;padding:40px;max-width:640px">'
+            . '<h2>Trgovina je već instalirana ✓</h2>'
+            . '<p>Sve radi. Iz sigurnosnih razloga obrišite cijeli <code>install/</code> direktorij sa servera.</p>'
+            . '<p>Ako baš želite instalaciju ispočetka, ručno obrišite <code>config/config.php</code> i <code>install/.lock</code> pa osvježite ovu stranicu.</p></body>');
+    }
+    die('<!doctype html><meta charset="utf-8"><body style="font-family:sans-serif;padding:40px;max-width:680px">'
+        . '<h2>⚠ Pronađen je config/config.php — ali baza iz njega NE RADI na ovom serveru.</h2>'
+        . '<p style="background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:14px;line-height:1.7">'
+        . 'Najčešći uzrok: datoteke su prenesene s <strong>drugog računala</strong> (npr. localhost) zajedno s njegovim '
+        . '<code>config/config.php</code> — on pokazuje na bazu koja ovdje ne postoji, pa cijela trgovina vraća grešku 500.</p>'
+        . '<p><strong>Rješenje (2 minute):</strong></p><ol style="line-height:2">'
+        . '<li>Preko FTP-a / File Managera <strong>obrišite</strong> <code>config/config.php</code> i <code>install/.lock</code> (ako postoji)</li>'
+        . '<li>Osvježite ovu stranicu — pokrenut će se čarobnjak instalacije</li>'
+        . '<li>Upišite MySQL podatke <strong>OVOG hostinga</strong> (bazu kreirajte u cPanelu → MySQL Databases)</li></ol>'
+        . '<p style="color:#6b7280;font-size:13px">Tehnički detalj: ' . htmlspecialchars(mb_substr($dbErr, 0, 200), ENT_QUOTES) . '</p></body>');
+}
+if (file_exists($lockFile)) {
+    // .lock bez configa = ostatak prijenosa s drugog okruženja — makni ga i nastavi
+    @unlink($lockFile);
 }
 
 function ie($s): string { return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8'); }

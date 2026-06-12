@@ -80,6 +80,24 @@ class Djurdja
         return (bool) $acc['features']['INVOICE_FOOTER_LINK'];
     }
 
+    /**
+     * Logo firme za RAČUN — samo plaćeni planovi (feature INVOICE_LOGO_PRINT),
+     * URL dolazi iz đurđe (companyLogoUrl). Free plan → null (bez loga).
+     */
+    public static function receiptLogoUrl(): ?string
+    {
+        $acc = self::account();
+        if (empty($acc['features']['INVOICE_LOGO_PRINT'])) return null;
+        $url = self::company()['logoUrl'] ?? null;
+        return ($url && preg_match('#^https://#', (string) $url)) ? (string) $url : null;
+    }
+
+    /** Smije li korisnik koristiti vlastiti CSS / predloške? (plaćeni plan) */
+    public static function customizationAllowed(): bool
+    {
+        return !self::brandingRequired();
+    }
+
     /** Kvota dokumenata: ['used'=>..,'limit'=>..,'periodEnd'=>..] ili null (unlimited/nepoznato). */
     public static function quota(): ?array
     {
@@ -130,6 +148,7 @@ class Djurdja
             Settings::set('djurdja_last_ok_at', date('Y-m-d H:i:s'));
             Settings::set('djurdja_key_invalid', '0');
             Settings::set('djurdja_last_error', null);
+            self::maybeQuotaWarning();
             self::maybeHeartbeat($client);
             return true;
         } catch (DjurdjaApiException $e) {
@@ -143,6 +162,39 @@ class Djurdja
             Settings::set('djurdja_last_error', mb_substr($e->getMessage(), 0, 300));
             error_log('[Djurdja::refresh] ' . $e->getMessage());
             return false;
+        }
+    }
+
+    /**
+     * Upozorenje vlasniku kad je kvota pri kraju (≤10% ili ≤3 dokumenta) —
+     * šalje se VLASNIKOVIM mailerom (njegov resurs), najviše jednom po periodu.
+     */
+    private static function maybeQuotaWarning(): void
+    {
+        try {
+            $q = self::quota();
+            if (!$q) return;
+            $limit = (int) $q['limit'];
+            $remaining = $limit - (int) $q['used'];
+            if ($remaining > max(3, (int) ceil($limit * 0.10))) return;
+
+            $period = (string) ($q['periodEnd'] ?? date('Y-m'));
+            if (Settings::get('quota_warned_for') === $period) return;
+            Settings::set('quota_warned_for', $period);
+
+            $to = Settings::get('shop_email', '');
+            if (!$to) return;
+            Mailer::send(
+                $to,
+                '⚠ Kvota fiskalizacije je pri kraju — ' . shop_name(),
+                '<h2 style="margin:0 0 8px">Još ' . max(0, $remaining) . ' od ' . $limit . ' računa ovaj mjesec</h2>'
+                . '<p>Vaš MojaĐurđa paket je gotovo iskorišten. Kad se kvota potroši, '
+                . 'web trgovina <strong>ne može fiskalizirati nove narudžbe</strong> do početka novog razdoblja.</p>'
+                . '<p><a href="https://mojadjurdja.com/cjenik?utm_source=webshop&utm_medium=email&utm_campaign=quota" '
+                . 'style="background:#1f2937;color:#fff;padding:11px 22px;border-radius:8px;text-decoration:none;font-weight:bold">Nadogradite paket</a></p>'
+            );
+        } catch (Throwable $e) {
+            error_log('[Djurdja::quotaWarning] ' . $e->getMessage());
         }
     }
 

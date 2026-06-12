@@ -39,7 +39,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <div class="login-card">
     <div class="adm-brand" style="color:#1f2330;padding-bottom:8px"><span class="b">Đ</span> <?= e(shop_name()) ?></div>
     <p style="color:#8b90a0;font-size:13px;margin:0 0 18px">Prijava u administraciju trgovine</p>
+    <?php foreach (take_flashes() as $f): ?><div class="alert alert-<?= e($f['type']) ?>"><?= e($f['msg']) ?></div><?php endforeach; ?>
     <?php if ($error): ?><div class="alert alert-error"><?= e($error) ?></div><?php endif; ?>
+
+    <?php if (Settings::get('djurdja_key_id') && !(defined('DJURDJA_MOCK') && DJURDJA_MOCK)): ?>
+      <a href="<?= e(url('admin/sso.php')) ?>" class="abtn" style="width:100%;justify-content:center;padding:12px;background:#7c3aed;margin-bottom:6px">
+        Đ&nbsp; Prijava preko MojaĐurđa (bez lozinke)
+      </a>
+      <div style="display:flex;align-items:center;gap:10px;margin:12px 0;color:#c3c8d4;font-size:11px">
+        <span style="flex:1;height:1px;background:#e5e7eb"></span> ili lozinkom <span style="flex:1;height:1px;background:#e5e7eb"></span>
+      </div>
+    <?php endif; ?>
     <form method="post">
       <?= csrf_field() ?>
       <label class="al">Korisničko ime</label>

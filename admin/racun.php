@@ -48,6 +48,9 @@ hr{border:0;border-top:1px dashed #999}
 </div>
 
 <div class="c">
+  <?php if ($logo = Djurdja::receiptLogoUrl()): ?>
+    <img src="<?= e($logo) ?>" alt="" style="max-height:64px;max-width:200px;margin:0 auto 8px">
+  <?php endif; ?>
   <h2><?= e($company['companyName'] ?? shop_name()) ?></h2>
   <div class="muted">
     <?php if (!empty($company['address'])): ?><?= e($company['address']) ?>, <?= e($company['postalCode'] ?? '') ?> <?= e($company['city'] ?? '') ?><br><?php endif; ?>
@@ -99,5 +102,8 @@ hr{border:0;border-top:1px dashed #999}
   <?php if ($order['fiscal_qr']): ?>Provjera računa: <?= e($order['fiscal_qr']) ?><?php endif; ?>
 </div>
 <p class="c muted">Hvala na kupnji! · <?= e(shop_name()) ?> · <?= e(SITE_URL) ?></p>
+<?php if (Djurdja::brandingRequired()): ?>
+<hr><p class="c muted">Račun izdan putem besplatnog sustava MojaĐurđa · mojadjurdja.com</p>
+<?php endif; ?>
 </body>
 </html>

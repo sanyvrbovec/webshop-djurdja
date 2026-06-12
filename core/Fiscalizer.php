@@ -264,17 +264,16 @@ class Fiscalizer
         return $payload;
     }
 
-    /** FINA kod načina plaćanja: G gotovina, K kartica, T transakcijski račun, O ostalo. */
+    /**
+     * FINA kod načina plaćanja — fiksno (bez korisničkih postavki):
+     * kartice (Stripe) = K, pouzeće = G (gotovina pri preuzimanju), ostalo = O.
+     */
     private static function finaCode(string $method): string
     {
-        $mapping = Settings::getJson('fiscal_payment_mapping');
-        if (isset($mapping[$method]) && in_array($mapping[$method], ['G', 'K', 'T', 'C', 'O'], true)) {
-            return $mapping[$method];
-        }
         switch ($method) {
-            case 'cod':           return 'G';
             case 'stripe':        return 'K';
-            case 'bank_transfer': return 'T';
+            case 'cod':           return 'G';
+            case 'bank_transfer': return 'T'; // povijesne narudžbe prije v1.1
             default:              return 'O';
         }
     }
