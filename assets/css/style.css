@@ -456,28 +456,37 @@ label.f-label { display: block; font-size: 13px; font-weight: 700; margin-bottom
 .ba-content img { border-radius: calc(var(--radius) * .7); }
 @media (max-width: 760px) { .blog-hero { grid-template-columns: 1fr; } .blog-hero img { min-height: 200px; } }
 
-/* ── Promo traka (besplatni paket) — diskretna, klizeća, klikabilna ── */
+/* ── Promo traka (besplatni paket) — diskretna, klizeća; 1×dnevno + zatvaranje ── */
+.promo-bar[hidden] { display: none !important; }
 .promo-bar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 80;
-  display: block; overflow: hidden; height: 38px; text-decoration: none;
+  display: flex; align-items: stretch; height: 38px;
   background: linear-gradient(90deg, #6d28d9, #a855f7 50%, #6d28d9);
   border-top: 1px solid rgba(255,255,255,.18);
   box-shadow: 0 -4px 16px rgba(109,40,217,.25);
+  animation: promo-slide-in .4s ease;
 }
-.promo-bar:hover { opacity: 1; filter: brightness(1.06); }
+.promo-link { flex: 1; min-width: 0; overflow: hidden; display: flex; align-items: center; text-decoration: none; }
+.promo-link:hover { filter: brightness(1.06); opacity: 1; }
 .promo-track {
   display: inline-flex; align-items: center; height: 38px; white-space: nowrap;
   animation: promo-scroll 36s linear infinite; will-change: transform;
 }
-.promo-bar:hover .promo-track { animation-play-state: paused; }
+.promo-link:hover .promo-track { animation-play-state: paused; }
 .promo-track span { color: #fff; font-size: 13.5px; font-weight: 600; letter-spacing: .2px; padding: 0 48px; }
 .promo-track .pb-dot {
   display: inline-grid; place-items: center; width: 20px; height: 20px; padding: 0;
   background: #fff; color: #6d28d9; border-radius: 50%; font-size: 12px; font-weight: 900;
   vertical-align: -4px; margin-right: 6px;
 }
+.promo-close {
+  flex: none; width: 42px; border: 0; background: rgba(0,0,0,.12); color: #fff;
+  font-size: 22px; line-height: 1; cursor: pointer; transition: background .15s;
+}
+.promo-close:hover { background: rgba(0,0,0,.28); }
 @keyframes promo-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-@media (prefers-reduced-motion: reduce) { .promo-track { animation: none; } }
+@keyframes promo-slide-in { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .promo-track { animation: none; } .promo-bar { animation: none; } }
 
 /* ── Hero poravnanje ── */
 .hero-left .hero-inner { margin-left: 0; margin-right: auto; text-align: left; }

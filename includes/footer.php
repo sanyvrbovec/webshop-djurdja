@@ -79,12 +79,33 @@ $djLink = 'https://mojadjurdja.com/?utm_source=webshop&utm_medium=footer&utm_cam
 </aside>
 
 <?php if ($branding): $promo = Djurdja::promo(); if ($promo['enabled']): ?>
-<a class="promo-bar" href="<?= e($promo['url']) ?>" target="_blank" rel="noopener" aria-label="MojaĐurđa promo">
-  <div class="promo-track">
-    <?php for ($i = 0; $i < 4; $i++): ?><span><span class="pb-dot">Đ</span> <?= e($promo['text']) ?></span><?php endfor; ?>
-  </div>
-</a>
-<style>body{padding-bottom:42px}</style>
+<div class="promo-bar" id="promo-bar" hidden>
+  <a class="promo-link" href="<?= e($promo['url']) ?>" target="_blank" rel="noopener" aria-label="MojaĐurđa promo">
+    <div class="promo-track">
+      <?php for ($i = 0; $i < 4; $i++): ?><span><span class="pb-dot">Đ</span> <?= e($promo['text']) ?></span><?php endfor; ?>
+    </div>
+  </a>
+  <button type="button" class="promo-close" data-promo-close aria-label="Zatvori reklamu">&times;</button>
+</div>
+<script>
+/* Promo traka — najviše jednom dnevno po posjetitelju + ručno zatvaranje (neagresivno) */
+(function () {
+  var bar = document.getElementById('promo-bar');
+  if (!bar) return;
+  var KEY = 'dj_promo_seen', today = new Date().toISOString().slice(0, 10);
+  function dismiss(remember) {
+    bar.hidden = true;
+    document.body.style.paddingBottom = '';
+    if (remember) { try { localStorage.setItem(KEY, today); } catch (e) {} }
+  }
+  try { if (localStorage.getItem(KEY) === today) return; } catch (e) {}
+  // prikaži jednom i odmah zapamti da se danas više ne pojavljuje (ni na drugim stranicama)
+  bar.hidden = false;
+  document.body.style.paddingBottom = '42px';
+  try { localStorage.setItem(KEY, today); } catch (e) {}
+  bar.querySelector('[data-promo-close]').addEventListener('click', function () { dismiss(true); });
+})();
+</script>
 <?php endif; endif; ?>
 
 <div id="toast-wrap"></div>
