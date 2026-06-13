@@ -464,8 +464,11 @@ label.f-label { display: block; font-size: 13px; font-weight: 700; margin-bottom
   background: linear-gradient(90deg, #6d28d9, #a855f7 50%, #6d28d9);
   border-top: 1px solid rgba(255,255,255,.18);
   box-shadow: 0 -4px 16px rgba(109,40,217,.25);
-  animation: promo-slide-in .4s ease;
+  /* početno skriveno ispod ruba + prozirno; .show glatko uklizi i pojavi se */
+  transform: translateY(100%); opacity: 0;
+  transition: transform .55s cubic-bezier(.22,.61,.36,1), opacity .55s ease;
 }
+.promo-bar.show { transform: translateY(0); opacity: 1; }
 .promo-link { flex: 1; min-width: 0; overflow: hidden; display: flex; align-items: center; text-decoration: none; }
 .promo-link:hover { filter: brightness(1.06); opacity: 1; }
 .promo-track {
@@ -485,8 +488,7 @@ label.f-label { display: block; font-size: 13px; font-weight: 700; margin-bottom
 }
 .promo-close:hover { background: rgba(0,0,0,.28); }
 @keyframes promo-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-@keyframes promo-slide-in { from { transform: translateY(100%); } to { transform: translateY(0); } }
-@media (prefers-reduced-motion: reduce) { .promo-track { animation: none; } .promo-bar { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .promo-track { animation: none; } .promo-bar { transition: none; } }
 
 /* ── Hero poravnanje ── */
 .hero-left .hero-inner { margin-left: 0; margin-right: auto; text-align: left; }

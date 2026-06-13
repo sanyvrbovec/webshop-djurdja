@@ -88,22 +88,30 @@ $djLink = 'https://mojadjurdja.com/?utm_source=webshop&utm_medium=footer&utm_cam
   <button type="button" class="promo-close" data-promo-close aria-label="Zatvori reklamu">&times;</button>
 </div>
 <script>
-/* Promo traka — najviše jednom dnevno po posjetitelju + ručno zatvaranje (neagresivno) */
+/* Promo traka — neagresivno: pojavi se tek nakon 1 min (glatko), a ako je
+   posjetitelj ne zatvori, sama nestane za 1 min. Najviše jednom dnevno. */
 (function () {
   var bar = document.getElementById('promo-bar');
   if (!bar) return;
   var KEY = 'dj_promo_seen', today = new Date().toISOString().slice(0, 10);
-  function dismiss(remember) {
-    bar.hidden = true;
-    document.body.style.paddingBottom = '';
-    if (remember) { try { localStorage.setItem(KEY, today); } catch (e) {} }
-  }
+  var DELAY = 60000, VISIBLE = 60000, hideTimer;
   try { if (localStorage.getItem(KEY) === today) return; } catch (e) {}
-  // prikaži jednom i odmah zapamti da se danas više ne pojavljuje (ni na drugim stranicama)
-  bar.hidden = false;
-  document.body.style.paddingBottom = '42px';
-  try { localStorage.setItem(KEY, today); } catch (e) {}
-  bar.querySelector('[data-promo-close]').addEventListener('click', function () { dismiss(true); });
+
+  function show() {
+    bar.hidden = false;
+    document.body.style.paddingBottom = '42px';
+    // dva rAF-a da prijelaz krene iz početnog stanja (glatki slide+fade in)
+    requestAnimationFrame(function () { requestAnimationFrame(function () { bar.classList.add('show'); }); });
+    try { localStorage.setItem(KEY, today); } catch (e) {}   // danas se više ne pojavljuje
+    hideTimer = setTimeout(hide, VISIBLE);
+  }
+  function hide() {
+    clearTimeout(hideTimer);
+    bar.classList.remove('show');                            // glatko nestane
+    setTimeout(function () { bar.hidden = true; document.body.style.paddingBottom = ''; }, 600);
+  }
+  bar.querySelector('[data-promo-close]').addEventListener('click', hide);
+  setTimeout(show, DELAY);
 })();
 </script>
 <?php endif; endif; ?>
