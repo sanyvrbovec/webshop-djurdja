@@ -265,6 +265,7 @@ class DjurdjaClient
                     'usage' => ['DOCUMENT_CREATE' => ['used' => $used, 'limit' => 30, 'periodEnd' => date('Y-m-t 23:59:59')]],
                     'shopStatus' => 'active',
                     'latestShopVersion' => defined('SHOP_VERSION') ? SHOP_VERSION : '1.0.0',
+                    'minShopVersion' => '',
                 ];
 
             case 'GET /shop/catalog':

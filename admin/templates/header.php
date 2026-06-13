@@ -63,6 +63,13 @@ $statusBadge = [
       </div>
     </div>
     <div class="adm-content">
+    <?php if (Djurdja::versionBlocked()): ?>
+      <div class="alert alert-error">
+        🛠️ <strong>Vaša trgovina koristi zastarjelu verziju (<?= e(SHOP_VERSION) ?>) i privremeno NE prima narudžbe.</strong>
+        Potrebna je najmanje verzija <strong><?= e(Djurdja::minVersion()) ?></strong>.
+        Preuzmite najnoviju verziju, zamijenite datoteke na serveru (FTP/File Manager) i osvježite — izlog se odmah otključava.
+      </div>
+    <?php endif; ?>
     <?php foreach (take_flashes() as $f): ?>
       <div class="alert alert-<?= e($f['type']) ?>"><?= e($f['msg']) ?></div>
     <?php endforeach; ?>

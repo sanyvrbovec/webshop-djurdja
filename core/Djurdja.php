@@ -145,6 +145,26 @@ class Djurdja
     }
 
     /**
+     * Minimalna podržana verzija koju je đurđa centralno postavila
+     * (Webshop upravljanje). Prazno = nema prisile (fail-open).
+     */
+    public static function minVersion(): string
+    {
+        return (string) Settings::get('djurdja_min_version', '');
+    }
+
+    /**
+     * Je li ova instalacija PRESTARA i mora se ažurirati? Kad đurđa postavi
+     * minShopVersion noviju od SHOP_VERSION → izlog se zaključa dok vlasnik
+     * ne povuče novu verziju (prisila na update, centralno kontrolirana).
+     */
+    public static function versionBlocked(): bool
+    {
+        $min = self::minVersion();
+        return $min !== '' && version_compare(SHOP_VERSION, $min, '<');
+    }
+
+    /**
      * Mora li shop prikazivati MojaĐurđa link u footeru?
      * Free plan ima INVOICE_FOOTER_LINK = enabled. Fail-closed: nepoznato → prikazuj.
      */
@@ -263,6 +283,9 @@ class Djurdja
                 if (!empty($acc['latestShopVersion'])) {
                     Settings::set('djurdja_latest_version', $acc['latestShopVersion']);
                 }
+                // Minimalna podržana verzija (prisila na update). Ključ uvijek
+                // spremi — prazno znači "nema prisile", pa stari gateway ne blokira.
+                Settings::set('djurdja_min_version', (string) ($acc['minShopVersion'] ?? ''));
                 Settings::set('djurdja_shop_module_missing', '0');
             } catch (DjurdjaApiException $e) {
                 // Backend još nema /shop/* rute (deploy nije odrađen) → koristi /me,

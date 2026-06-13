@@ -6,6 +6,24 @@
 $pageTitle = $pageTitle ?? '';
 $pageDesc = $pageDesc ?? '';
 
+// Prisila na update: đurđa centralno postavi minShopVersion → prestare
+// instalacije zaključaju IZLOG (admin radi da vlasnik vidi uputu i ažurira)
+if (Djurdja::versionBlocked()) {
+    http_response_code(503);
+    header('Retry-After: 3600');
+    echo '<!doctype html><html lang="hr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+        . '<meta name="robots" content="noindex"><title>Trgovina se ažurira</title>'
+        . '<body style="margin:0;font-family:system-ui,sans-serif;background:#f8fafc;display:grid;place-items:center;min-height:100vh">'
+        . '<div style="max-width:480px;padding:40px;text-align:center"><div style="font-size:44px">🛠️</div>'
+        . '<h1 style="font-size:22px;color:#0f172a">Trgovina se ažurira</h1>'
+        . '<p style="color:#475569;font-size:15px;line-height:1.6">Vraćamo se vrlo brzo — hvala na strpljenju!</p>'
+        . '<p style="color:#94a3b8;font-size:12px;line-height:1.6;border-top:1px solid #e2e8f0;padding-top:14px;margin-top:22px">'
+        . 'Napomena za vlasnika: ova verzija trgovine više nije podržana i privremeno ne prima narudžbe. '
+        . 'Preuzmite najnoviju verziju i zamijenite datoteke na serveru — upute u administraciji (Postavke).</p>'
+        . '</div></body></html>';
+    exit;
+}
+
 // Plan-gate: paket bez WEBSHOP prava → izlog zaključan (admin i dalje radi)
 if (!Djurdja::shopAllowed()) {
     http_response_code(503);
