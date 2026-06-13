@@ -259,6 +259,7 @@ class DjurdjaClient
                         'companyId' => 'mock-company-0001', 'companyOib' => '12345678901',
                         'companyName' => 'Demo obrt za testiranje', 'inVatSystem' => true, 'hasCertificate' => true,
                         'address' => 'Ilica 1', 'city' => 'Zagreb', 'postalCode' => '10000', 'email' => 'demo@example.com',
+                        'invoiceHeader' => '', 'invoiceFooter' => 'Roba ostaje vlasništvo prodavatelja do potpune isplate.',
                     ],
                     'plan' => ['id' => 'plan_free_01', 'name' => 'Besplatni', 'isPremium' => false],
                     'features' => ['INVOICE_FOOTER_LINK' => true, 'INVOICE_LOGO_PRINT' => false],

@@ -145,6 +145,23 @@ class Fiscalizer
             'duration_ms' => (int) ((microtime(true) - $startTs) * 1000),
         ]);
 
+        // Fiskalizirani račun automatski kupcu na mail + obavijest vlasniku
+        // (best-effort, ne ruši fiskalizaciju ako mail padne)
+        try {
+            $fresh = $db->fetch('SELECT * FROM orders WHERE id = :id', [':id' => $orderId]);
+            if ($fresh) {
+                Mailer::fiscalReceipt($fresh);
+                @Mailer::send(
+                    Settings::get('shop_email', ''),
+                    'Fiskaliziran račun ' . $receiptNumber . ' — ' . ($fresh['order_number'] ?? ''),
+                    '<p>Račun <strong>' . e($receiptNumber) . '</strong> za narudžbu <strong>' . e($fresh['order_number'] ?? '') . '</strong> '
+                    . 'je fiskaliziran i poslan kupcu (' . e($fresh['customer_email']) . ').<br>JIR: ' . e($result['jir'] ?? '') . '</p>'
+                );
+            }
+        } catch (Throwable $e) {
+            error_log('[Fiscalizer] slanje racuna: ' . $e->getMessage());
+        }
+
         return [
             'success' => true,
             'jir' => $result['jir'] ?? null, 'zki' => $result['zki'] ?? null,

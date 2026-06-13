@@ -174,13 +174,18 @@ class Mailer
             : '';
 
         $logo = Djurdja::receiptLogoUrl();
+        $hdr = Djurdja::invoiceHeader();
+        $ftr = Djurdja::invoiceFooter();
+        $qrImg = $order['fiscal_qr'] ? Qr::url($order['fiscal_qr']) : null;
         $html = $testWarn . $stornoWarn
             . '<div style="text-align:center;margin-bottom:14px">'
             . ($logo ? '<img src="' . e($logo) . '" alt="" style="max-height:64px;max-width:200px;margin:0 auto 8px;display:block">' : '')
             . '<h2 style="margin:0">' . e($company['companyName'] ?? shop_name()) . '</h2>'
             . '<div style="color:#6b7280;font-size:12.5px">'
             . (!empty($company['address']) ? e($company['address']) . ', ' . e($company['postalCode'] ?? '') . ' ' . e($company['city'] ?? '') . '<br>' : '')
-            . 'OIB: ' . e($company['companyOib'] ?? '—') . ' · ' . ($inVat ? 'U sustavu PDV-a' : 'Nije u sustavu PDV-a') . '</div></div>'
+            . 'OIB: ' . e($company['companyOib'] ?? '—') . ' · ' . ($inVat ? 'U sustavu PDV-a' : 'Nije u sustavu PDV-a') . '</div>'
+            . ($hdr ? '<div style="color:#6b7280;font-size:12px;margin-top:6px;white-space:pre-line">' . e($hdr) . '</div>' : '')
+            . '</div>'
             . '<p style="margin:6px 0"><strong>RAČUN br. ' . e($order['fiscal_receipt_number']) . '</strong><br>'
             . '<span style="color:#6b7280;font-size:12.5px">Narudžba ' . e($order['order_number']) . ' · ' . e($order['fiscalized_at'])
             . ' · Plaćanje: ' . e(Orders::paymentLabel($order['payment_method'])) . ' · Valuta: EUR</span></p>'
@@ -194,10 +199,14 @@ class Mailer
                 ? '<p style="color:#6b7280;font-size:12px">Napomena: dostava' . ((float) $order['payment_fee'] > 0 ? ' i naknada plaćanja' : '')
                   . ' (' . fmt_price($extra) . ') nije predmet ovog računa i obračunava se zasebno.</p>'
                 : '')
-            . '<div style="border:1px dashed #9ca3af;border-radius:8px;padding:12px;font-size:11.5px;color:#374151;word-break:break-all;margin:14px 0">'
+            . '<table role="presentation" width="100%" style="border:1px dashed #9ca3af;border-radius:8px;margin:14px 0"><tr>'
+            . '<td style="padding:12px;font-size:11.5px;color:#374151;word-break:break-all;vertical-align:middle">'
             . '<strong>FISKALNI PODACI</strong><br>JIR: ' . e($order['fiscal_jir']) . '<br>ZKI: ' . e($order['fiscal_zki'])
-            . ($order['fiscal_qr'] ? '<br>Provjera računa: <a href="' . e($order['fiscal_qr']) . '">' . e($order['fiscal_qr']) . '</a>' : '')
-            . '</div>'
+            . ($order['fiscal_qr'] ? '<br><a href="' . e($order['fiscal_qr']) . '" style="color:#6b7280">Provjera računa na poreznoj ↗</a>' : '')
+            . '</td>'
+            . ($qrImg ? '<td style="padding:12px;width:104px;vertical-align:middle"><img src="' . e($qrImg) . '" alt="QR" width="92" height="92" style="display:block;border:1px solid #e5e7eb;border-radius:6px;background:#fff;padding:3px"></td>' : '')
+            . '</tr></table>'
+            . ($ftr ? '<p style="color:#6b7280;font-size:11.5px;white-space:pre-line">' . e($ftr) . '</p>' : '')
             . '<p style="color:#9ca3af;font-size:12px;text-align:center">Hvala na kupnji! · ' . e(shop_name()) . '</p>'
             . (Djurdja::brandingRequired()
                 ? '<p style="color:#9ca3af;font-size:11.5px;text-align:center;border-top:1px solid #f3f4f6;padding-top:10px">Račun izdan putem besplatnog sustava <a href="https://mojadjurdja.com/?utm_source=webshop&utm_medium=receipt&utm_campaign=poweredby" style="color:#6b7280">MojaĐurđa</a></p>'

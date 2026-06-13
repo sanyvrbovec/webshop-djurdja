@@ -67,7 +67,7 @@ require __DIR__ . '/includes/header.php';
               <td><strong><?= fmt_price($o['total']) ?></strong></td>
               <td>
                 <?php if ($o['fiscal_status'] === 'fiscalized' || $o['fiscal_status'] === 'stornoed'): ?>
-                  <span style="font-size:12.5px"><?= e($o['fiscal_receipt_number']) ?><?= $o['fiscal_status'] === 'stornoed' ? ' (stornirano)' : '' ?></span>
+                  <a href="<?= e(url('racun.php?id=' . (int) $o['id'])) ?>" target="_blank" style="font-size:12.5px">🧾 <?= e($o['fiscal_receipt_number']) ?><?= $o['fiscal_status'] === 'stornoed' ? ' (stornirano)' : '' ?></a>
                 <?php else: ?><span style="color:var(--c-muted);font-size:12.5px">—</span><?php endif; ?>
               </td>
             </tr>

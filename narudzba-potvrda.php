@@ -39,14 +39,20 @@ require __DIR__ . '/includes/header.php';
       <div class="summary-row total"><span>Ukupno</span><span class="val"><?= fmt_price($order['total']) ?></span></div>
 
       <?php if ($order['fiscal_status'] === 'fiscalized'): ?>
-        <div class="fiscal-box" style="margin-top:16px">
-          <?php if ($order['fiscal_mode'] === 'test'): ?><strong style="color:#b45309">⚠ TESTNI RAČUN (probni način rada)</strong><br><?php endif; ?>
-          <strong>✓ Račun je fiskaliziran u Poreznoj upravi</strong><br>
-          Broj računa: <strong><?= e($order['fiscal_receipt_number']) ?></strong><br>
-          JIR: <?= e($order['fiscal_jir']) ?><br>
-          ZKI: <?= e($order['fiscal_zki']) ?>
-          <?php if ($order['fiscal_qr']): ?><br><a href="<?= e($order['fiscal_qr']) ?>" target="_blank" rel="noopener">Provjeri račun u Poreznoj upravi ↗</a><?php endif; ?>
+        <div class="fiscal-box" style="margin-top:16px;display:flex;gap:14px;align-items:flex-start">
+          <div style="flex:1">
+            <?php if ($order['fiscal_mode'] === 'test'): ?><strong style="color:#b45309">⚠ TESTNI RAČUN (probni način rada)</strong><br><?php endif; ?>
+            <strong>✓ Račun je fiskaliziran u Poreznoj upravi</strong><br>
+            Broj računa: <strong><?= e($order['fiscal_receipt_number']) ?></strong><br>
+            JIR: <?= e($order['fiscal_jir']) ?><br>
+            ZKI: <?= e($order['fiscal_zki']) ?>
+            <?php if ($order['fiscal_qr']): ?><br><a href="<?= e($order['fiscal_qr']) ?>" target="_blank" rel="noopener">Provjeri račun u Poreznoj upravi ↗</a><?php endif; ?>
+          </div>
+          <?php if ($order['fiscal_qr'] && ($qr = Qr::dataUri($order['fiscal_qr']))): ?>
+            <img src="<?= e($qr) ?>" alt="QR fiskalni račun" style="width:92px;height:92px;border:1px solid var(--c-border);border-radius:6px;background:#fff;padding:3px;flex:none">
+          <?php endif; ?>
         </div>
+        <a href="<?= e(url('racun.php?t=' . urlencode($order['guest_token']))) ?>" target="_blank" class="btn btn-ghost btn-sm" style="width:100%;margin-top:10px">🧾 Ispiši / preuzmi račun (PDF)</a>
       <?php endif; ?>
     </div>
 

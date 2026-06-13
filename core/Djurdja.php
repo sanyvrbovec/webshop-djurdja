@@ -194,6 +194,18 @@ class Djurdja
         return !self::brandingRequired();
     }
 
+    /** Zaglavlje računa (vlasnik ga definira u đurđa profilu — izvor istine). */
+    public static function invoiceHeader(): string
+    {
+        return trim((string) (self::company()['invoiceHeader'] ?? ''));
+    }
+
+    /** Footer računa iz đurđe (vlasnikova poruka ispod zakonskih napomena). */
+    public static function invoiceFooter(): string
+    {
+        return trim((string) (self::company()['invoiceFooter'] ?? ''));
+    }
+
     /** Blog: plaćeni plan + korisnikov prekidač (na free uvijek ugašen). */
     public static function blogActive(): bool
     {
