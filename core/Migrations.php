@@ -3,9 +3,13 @@
  * Migrations — automatska nadogradnja sheme baze nakon update-a koda.
  *
  * Verzija sheme živi u settings.schema_version. Svaka nadogradnja je SQL
- * datoteka install/migrations/{N}.sql (N = ciljna verzija). Pokreće se tiho
+ * datoteka core/migrations/{N}.sql (N = ciljna verzija). Pokreće se tiho
  * iz bootstrapa; "već postoji" greške (duplikat kolone/tablice/ključa) se
  * preskaču pa je ponovljeno izvođenje bezopasno.
+ *
+ * NAPOMENA: migracije su u core/ (zaštićen .htaccess "Require all denied")
+ * baš zato da PREŽIVE brisanje install/ direktorija nakon instalacije —
+ * inače buduće nadogradnje sheme ne bi imale odakle čitati.
  */
 
 class Migrations
@@ -38,7 +42,7 @@ class Migrations
             $current = (int) $db->fetchColumn("SELECT v FROM settings WHERE k = 'schema_version'") ?: $current;
 
             for ($v = $current + 1; $v <= self::TARGET; $v++) {
-                $file = SHOP_ROOT . '/install/migrations/' . $v . '.sql';
+                $file = SHOP_ROOT . '/core/migrations/' . $v . '.sql';
                 if (!is_file($file)) break;
                 self::applyFile($db, $file, $v);
                 Settings::set('schema_version', (string) $v);

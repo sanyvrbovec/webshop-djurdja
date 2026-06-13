@@ -102,10 +102,26 @@ class PaymentManager
         return new Stripe(['secret_key' => $sk, 'webhook_secret' => $wh ?: '']);
     }
 
-    /** Je li payment metoda u sandbox/test modu (za određivanje fiskalnog moda). */
+    /**
+     * Je li payment metoda u sandbox/test modu (određuje fiskalni mod).
+     *
+     * SIGURNOST: testni Stripe ključ (pk_test_/sk_test_) UVIJEK znači sandbox,
+     * bez obzira na kvačicu — tako je nemoguće izdati PRAVI fiskalni račun za
+     * testnu (lažnu) uplatu, čak i ako korisnik zabunom isključi "Sandbox".
+     */
     public function isSandbox(string $code): bool
     {
         $m = $this->getMethod($code);
-        return !empty($m['config']['sandbox']);
+        if (!$m) return false;
+        $cfg = $m['config'] ?? [];
+
+        if ($code === 'stripe') {
+            $pk = (string) ($cfg['publishable_key'] ?? '');
+            if (strncmp($pk, 'pk_test_', 8) === 0) return true;
+            $sk = (string) (Crypto::decrypt($cfg['secret_key_enc'] ?? null) ?? '');
+            if (strncmp($sk, 'sk_test_', 8) === 0) return true;
+        }
+
+        return !empty($cfg['sandbox']);
     }
 }
