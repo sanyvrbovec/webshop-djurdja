@@ -176,13 +176,6 @@ Taj config pokazuje na bazu koja na novom serveru ne postoji.
 ### Stranica je bijela / "Trgovina se osvježava"
 Baza nije dostupna. Provjerite radi li MySQL i jesu li podaci u `config/config.php` točni (host je obično `localhost`).
 
-### Greška kod migracije baze: *"Illegal mix of collations"* ili kriva kolacija
-Ako vaša baza koristi drukčiju kolaciju od tablica trgovine, neke `ALTER`/`CREATE`
-naredbe mogu javiti grešku miješanja kolacija. Riješite tako da nedostajuću tablicu/kolonu
-kreirate s **istom kolacijom kao postojeće tablice** vaše baze
-(npr. `CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci`), umjesto zadane.
-Svi podaci ostaju netaknuti — radi se samo o usklađivanju kolacije.
-
 ### Mailovi ne stižu
 Prebacite se na **SMTP** (E-mail postavke) i pošaljite test. Provjerite i spam mapu.
 
