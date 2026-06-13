@@ -21,3 +21,6 @@ logs/*
 Thumbs.db
 .idea/
 .vscode/
+
+# Interni dokumenti — ne idu na javni repo (ostaju lokalno)
+docs/
