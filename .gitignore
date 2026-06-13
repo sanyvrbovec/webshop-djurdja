@@ -24,3 +24,6 @@ Thumbs.db
 
 # Interni dokumenti — ne idu na javni repo (ostaju lokalno)
 docs/
+
+# JavaScript izvor — ne ide na javni repo (objavljujes obfusciranu verziju)
+assets/js/*.js
