@@ -121,6 +121,16 @@ class Fiscalizer
             self::markFailed($db, $orderId, 'Đurđa odgovor ne sadrži receiptNumber.', 'invalid_response');
             return ['success' => false, 'error' => 'Đurđa odgovor ne sadrži receiptNumber.'];
         }
+        // Zakonski broj računa = broj/oznaka_poslovnog_prostora/oznaka_naplatnog_uređaja
+        // (Zakon o fiskalizaciji). đurđa vraća sve tri komponente (i koristi ih za ZKI) —
+        // spajamo ih u propisani trodijelni oblik. Guard: ako broj već sadrži '/', ne diraj.
+        if (strpos($receiptNumber, '/') === false) {
+            $space  = (string) ($result['businessSpace'] ?? Settings::get('business_space', ''));
+            $device = (string) ($result['cashRegister']  ?? Settings::get('cash_register', ''));
+            if ($space !== '' && $device !== '') {
+                $receiptNumber = $receiptNumber . '/' . $space . '/' . $device;
+            }
+        }
 
         $db->update('orders', [
             'fiscal_status' => 'fiscalized',
@@ -217,6 +227,14 @@ class Fiscalizer
         $stornoNumber = (string) ($result['stornoReceiptNumber'] ?? '');
         if ($stornoNumber === '') {
             return ['success' => false, 'error' => 'Đurđa odgovor ne sadrži stornoReceiptNumber.'];
+        }
+        // Propisani trodijelni oblik (broj/poslovni_prostor/naplatni_uređaj)
+        if (strpos($stornoNumber, '/') === false) {
+            $space  = (string) ($result['businessSpace'] ?? Settings::get('business_space', ''));
+            $device = (string) ($result['cashRegister']  ?? Settings::get('cash_register', ''));
+            if ($space !== '' && $device !== '') {
+                $stornoNumber = $stornoNumber . '/' . $space . '/' . $device;
+            }
         }
         $db->update('orders', [
             'fiscal_status' => 'stornoed',
