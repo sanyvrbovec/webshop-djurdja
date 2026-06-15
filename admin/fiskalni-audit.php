@@ -51,13 +51,35 @@ require __DIR__ . '/templates/header.php';
         <?php if ($l['error_message']): ?><br><span style="color:#dc2626">Greška: <?= e($l['error_message']) ?></span><?php endif; ?>
         <?php if (!empty($l['fiscal_qr'])): ?><br><a href="<?= e($l['fiscal_qr']) ?>" target="_blank" rel="noopener">Provjeri račun na Poreznoj ↗</a><?php endif; ?>
       </div>
+      <?php
+        // Iz đurđinog odgovora izvuci DOSLOVNI CIS (Porezna) XML, ako ga vraća.
+        $resp = json_decode((string) $l['raw_response'], true);
+        $cisReq  = is_array($resp) ? ($resp['cisRequest'] ?? null) : null;
+        $cisResp = is_array($resp) ? ($resp['cisResponse'] ?? null) : null;
+        if (is_array($resp)) { unset($resp['cisRequest'], $resp['cisResponse']); }
+        $respShown = is_array($resp)
+            ? (string) json_encode($resp, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+            : (string) $l['raw_response'];
+        $pst = 'background:#0b1020;color:#d1d5db;padding:10px;border-radius:8px;overflow:auto;font-size:12px;max-height:340px;white-space:pre-wrap;word-break:break-all';
+      ?>
       <details style="margin-top:8px">
-        <summary style="cursor:pointer;font-weight:600;color:#4f46e5">Prikaži poslano i primljeno (točan zapis)</summary>
+        <summary style="cursor:pointer;font-weight:600;color:#4f46e5">Prikaži točan zapis (shop ↔ đurđa ↔ Porezna)</summary>
         <div style="margin-top:8px">
-          <div class="sub" style="font-weight:600">→ Poslano đurđi (zahtjev):</div>
-          <pre style="background:#0b1020;color:#d1d5db;padding:10px;border-radius:8px;overflow:auto;font-size:12px;max-height:320px"><?= e($pretty($l['raw_request'])) ?></pre>
-          <div class="sub" style="font-weight:600;margin-top:8px">← Odgovor đurđe/Porezne:</div>
-          <pre style="background:#0b1020;color:#d1d5db;padding:10px;border-radius:8px;overflow:auto;font-size:12px;max-height:320px"><?= e($pretty($l['raw_response'])) ?></pre>
+          <div class="sub" style="font-weight:600">→ Shop poslao đurđi:</div>
+          <pre style="<?= $pst ?>"><?= e($pretty($l['raw_request'])) ?></pre>
+          <div class="sub" style="font-weight:600;margin-top:8px">← đurđa vratila shopu:</div>
+          <pre style="<?= $pst ?>"><?= e($respShown) ?></pre>
+          <?php if ($cisReq): ?>
+            <div class="sub" style="font-weight:600;margin-top:8px;color:#b45309">→ CIS zahtjev — poslano Poreznoj (potpisani XML):</div>
+            <pre style="<?= $pst ?>"><?= e($cisReq) ?></pre>
+          <?php endif; ?>
+          <?php if ($cisResp): ?>
+            <div class="sub" style="font-weight:600;margin-top:8px;color:#15803d">← CIS odgovor — Porezna (JIR + digitalni potpis):</div>
+            <pre style="<?= $pst ?>"><?= e($cisResp) ?></pre>
+          <?php endif; ?>
+          <?php if (!$cisReq && !$cisResp): ?>
+            <p class="sub" style="margin:8px 0 0">CIS XML nije u ovom zapisu (stariji račun ili keširani ponovljeni poziv). Novi računi sadrže doslovni zahtjev/odgovor Porezne.</p>
+          <?php endif; ?>
         </div>
       </details>
     </div>
