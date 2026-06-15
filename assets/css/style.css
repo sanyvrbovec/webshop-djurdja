@@ -354,7 +354,11 @@ label.f-label { display: block; font-size: 13px; font-weight: 700; margin-bottom
 .cd-item img, .cd-item .ph { width: 62px; height: 62px; border-radius: 11px; object-fit: cover; background: color-mix(in srgb, var(--c-text) 5%, var(--c-surface)); }
 .cd-item .nm { font-size: 13.5px; font-weight: 700; line-height: 1.3; }
 .cd-item .pr { font-size: 12.5px; color: var(--c-muted); margin-top: 3px; }
-.cd-qty { display: inline-flex; align-items: center; gap: 8px; margin-top: 6px; }
+.cd-actions { display: flex; align-items: center; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
+.cd-qty { display: inline-flex; align-items: center; gap: 8px; }
+.cd-rm { display: inline-flex; align-items: center; gap: 5px; color: var(--c-muted); font-size: 12px; font-weight: 600; background: none; border: 0; cursor: pointer; padding: 4px 7px; border-radius: 7px; line-height: 1; transition: background .15s, color .15s; }
+.cd-rm:hover { color: #dc2626; background: color-mix(in srgb, #dc2626 9%, transparent); }
+.cd-rm svg { flex: none; }
 .cd-qty button { width: 26px; height: 26px; border-radius: 8px; border: 1.5px solid var(--c-border); background: transparent; cursor: pointer; font-size: 14px; line-height: 1; color: var(--c-text); }
 .cd-qty span { font-size: 13.5px; font-weight: 700; min-width: 18px; text-align: center; }
 .cd-empty { text-align: center; color: var(--c-muted); padding: 50px 10px; font-size: 14.5px; }
