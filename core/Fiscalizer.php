@@ -65,17 +65,24 @@ class Fiscalizer
         }
 
         $mode = self::determineMode($client, $order['payment_method']);
-        // Sigurnost: produkcijski đurđa ključ (live) + TESTNO plaćanje (npr. Stripe
-        // pk_test_) = pravi porezni račun za lažnu uplatu → blokiraj. Pravi ključ
-        // traži pravo plaćanje; inače bi se kvario produkcijski niz brojeva računa.
-        if ($mode === 'live') {
-            try {
-                if ((new PaymentManager())->isSandbox($order['payment_method'])) {
-                    $err = 'Produkcijski đurđa ključ uz testno plaćanje — fiskalizacija je blokirana (ne izdaje se pravi račun za testnu uplatu). Upišite prave ključeve plaćanja ili koristite testni đurđa ključ.';
-                    self::markFailed($db, $orderId, $err, 'sandbox_with_live_key');
-                    return ['success' => false, 'error' => $err];
-                }
-            } catch (Throwable $e) {
+        // Lanac okolina (PO-FIRMA, iz đurđe): demo certifikat (DEMO) ↔ TESTNO plaćanje;
+        // produkcijski certifikat (PROD) ↔ STVARNO plaćanje. Miješanje je nedopustivo
+        // (pravi račun za lažnu uplatu ili obrnuto). Okolinu daje đurđa (company_settings
+        // te firme); ako je još ne šalje, fallback na mod API ključa.
+        $env = Djurdja::fiscalizationEnv();
+        if ($env === null) $env = ($client->mode() === 'live') ? 'PROD' : 'DEMO';
+        if ($order['payment_method'] === 'stripe') {
+            try { $payIsTest = (new PaymentManager())->isSandbox('stripe'); }
+            catch (Throwable $e) { $payIsTest = false; }
+            if ($env === 'PROD' && $payIsTest) {
+                $err = 'Produkcijski certifikat firme + TESTNO kartično plaćanje — fiskalizacija blokirana (ne izdaje se pravi račun za testnu uplatu).';
+                self::markFailed($db, $orderId, $err, 'env_payment_mismatch');
+                return ['success' => false, 'error' => $err];
+            }
+            if ($env === 'DEMO' && !$payIsTest) {
+                $err = 'Demo certifikat firme + STVARNO (live) kartično plaćanje — fiskalizacija blokirana. Za demo koristite testne Stripe ključeve.';
+                self::markFailed($db, $orderId, $err, 'env_payment_mismatch');
+                return ['success' => false, 'error' => $err];
             }
         }
         $company = Djurdja::company();

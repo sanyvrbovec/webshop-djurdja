@@ -206,6 +206,20 @@ class Djurdja
         return Settings::get('djurdja_track_stock', '1') === '1';
     }
 
+    /**
+     * Okolina fiskalizacije ZA OVU FIRMU (iz đurđe, po API ključu):
+     * 'DEMO' = demo FINA certifikat (testno, ide na demo CIS Porezne),
+     * 'PROD' = produkcijski certifikat (stvarno), null = đurđa još ne šalje podatak.
+     * Određuje smije li se uopće raditi test. Izvor istine je đurđa (company_settings
+     * te firme), shop ništa ne izmišlja.
+     */
+    public static function fiscalizationEnv(): ?string
+    {
+        $e = self::company()['fiscalizationEnv'] ?? null;
+        $e = is_string($e) ? strtoupper(trim($e)) : '';
+        return in_array($e, ['DEMO', 'PROD'], true) ? $e : null;
+    }
+
     /** Zaglavlje računa (vlasnik ga definira u đurđa profilu — izvor istine). */
     public static function invoiceHeader(): string
     {
