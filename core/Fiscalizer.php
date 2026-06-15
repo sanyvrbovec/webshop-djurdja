@@ -148,7 +148,9 @@ class Fiscalizer
 
         $db->update('orders', [
             'fiscal_status' => 'fiscalized',
-            'fiscal_mode'   => $mode,
+            // Mod je ono što je đurđa STVARNO napravila (prema svom certifikatu/
+            // fiscalization_env), ne nagađanje shopa. 'test' = demo FINA cert.
+            'fiscal_mode'   => (string) ($result['mode'] ?? $mode),
             'fiscal_receipt_number' => $receiptNumber,
             'fiscal_jir'    => $result['jir'] ?? null,
             'fiscal_zki'    => $result['zki'] ?? null,

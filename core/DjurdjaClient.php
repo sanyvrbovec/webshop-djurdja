@@ -123,11 +123,20 @@ class DjurdjaClient
 
     public function fiscalize(array $payload): array
     {
+        // Fiskalizacija se NIKADA ne simulira — JIR izdaje isključivo Porezna (CIS)
+        // preko đurđe (demo FINA certifikat = test, produkcijski = stvarno). Lažni
+        // JIR u poreznoj aplikaciji je nedopustiv.
+        if ($this->mock) {
+            throw new RuntimeException('Fiskalizacija nije moguća u mock modu — potreban je pravi đurđa API i FINA certifikat (demo ili produkcijski).');
+        }
         return $this->call('POST', '/fiscalize', $payload);
     }
 
     public function storno(array $payload): array
     {
+        if ($this->mock) {
+            throw new RuntimeException('Storno nije moguć u mock modu — potreban je pravi đurđa API.');
+        }
         return $this->call('POST', '/fiscalize/storno', $payload);
     }
 
@@ -293,30 +302,8 @@ class DjurdjaClient
             case 'GET /shop/promo':
                 return ['enabled' => true, 'text' => 'MOCK promo: MojaĐurđa — blagajna, e-računi i besplatna web trgovina ✨', 'url' => 'https://mojadjurdja.com/?utm_source=webshop&utm_medium=promobar'];
 
-            case 'POST /fiscalize':
-                $n = (int) $this->mockSetting('mock_fiscal_counter', '0') + 1;
-                $this->mockSetting('mock_fiscal_counter', (string) $n, true);
-                $used = (int) $this->mockSetting('mock_quota_used', '0') + 1;
-                $this->mockSetting('mock_quota_used', (string) $used, true);
-                $jir = strtoupper(bin2hex(random_bytes(16)));
-                return [
-                    'internalReceiptId' => 'mock-' . bin2hex(random_bytes(8)),
-                    'receiptNumber'     => $n . '/' . ($body['businessSpace'] ?? 'WEBSHOP') . '/' . ($body['cashRegister'] ?? '1'),
-                    'jir'               => $jir,
-                    'zki'               => bin2hex(random_bytes(16)),
-                    'qrCode'            => 'https://porezna.gov.hr/rn?jir=' . $jir . '&datv=' . date('Ymd_Hi') . '&izn=' . (int) round(($body['totalAmount'] ?? 0) * 100),
-                    'fiscalizedAt'      => date('d.m.Y\TH:i:s'),
-                    'mode'              => 'test',
-                ];
-
-            case 'POST /fiscalize/storno':
-                $n = (int) $this->mockSetting('mock_fiscal_counter', '0') + 1;
-                $this->mockSetting('mock_fiscal_counter', (string) $n, true);
-                return [
-                    'stornoReceiptNumber' => $n . '/WEBSHOP/1',
-                    'stornoJir'           => strtoupper(bin2hex(random_bytes(16))),
-                    'mode'                => 'test',
-                ];
+            // NEMA mock /fiscalize ni /fiscalize/storno — fiskalizacija se ne smije
+            // izmišljati. fiscalize()/storno() bacaju iznimku u mock modu (vidi gore).
         }
 
         $e = new DjurdjaApiException("Mock: nepoznat endpoint $method $cleanPath");

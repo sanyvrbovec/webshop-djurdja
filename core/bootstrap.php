@@ -12,7 +12,7 @@
  * bootstrap — uključuje ga svaka javna stranica, API endpoint i admin init.
  */
 
-define('SHOP_VERSION', '1.3.0');
+define('SHOP_VERSION', '1.3.1');
 define('SHOP_ROOT', dirname(__DIR__));
 
 // ── 1. Config (ako ne postoji → installer) ──
