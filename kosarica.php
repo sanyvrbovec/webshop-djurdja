@@ -58,9 +58,12 @@ require __DIR__ . '/includes/header.php';
         <h3>Sažetak</h3>
         <div class="summary-row"><span>Međuzbroj</span><span><?= fmt_price($subtotal) ?></span></div>
         <?php $fo = (float) s('shipping_free_over', 0); $flat = (float) s('shipping_flat', 0); ?>
-        <div class="summary-row"><span>Dostava</span><span><?= ($fo > 0 && $subtotal >= $fo) ? 'Besplatna 🎉' : (fmt_price($flat) . ' (na blagajni)') ?></span></div>
-        <?php if ($fo > 0 && $subtotal < $fo): ?>
-          <div class="alert alert-info" style="font-size:13px">Dodajte još <?= fmt_price($fo - $subtotal) ?> za besplatnu dostavu!</div>
+        <div class="summary-row"><span>Dostava</span><span><?= ($fo > 0 && $subtotal >= $fo) ? 'Besplatna' : (fmt_price($flat) . ' (na blagajni)') ?></span></div>
+        <?php if ($fo > 0): $rem = $fo - $subtotal; $pct = max(0, min(100, (int) round($subtotal / $fo * 100))); ?>
+          <div class="ship-bar <?= $rem <= 0 ? 'ok' : '' ?>" style="margin:8px 0 4px">
+            <div class="ship-bar-txt"><?= $rem > 0 ? 'Još <strong>' . fmt_price($rem) . '</strong> do besplatne dostave' : 'Besplatna dostava ostvarena ✓' ?></div>
+            <div class="ship-bar-track"><div class="ship-bar-fill" style="width:<?= $rem <= 0 ? 100 : $pct ?>%"></div></div>
+          </div>
         <?php endif; ?>
         <div class="summary-row total"><span>Ukupno (procjena)</span><span class="val"><?= fmt_price($subtotal + (($fo > 0 && $subtotal >= $fo) ? 0 : $flat)) ?></span></div>
         <a href="<?= e(url('narudzba.php')) ?>" class="btn btn-lg" style="width:100%;margin-top:16px">Na blagajnu →</a>

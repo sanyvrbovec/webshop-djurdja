@@ -85,6 +85,7 @@ foreach ($items as $it) {
         'url'          => url('p/' . $it['slug']),
     ];
 }
+$allServices = $items && !array_filter($items, fn($i) => (int) ($i['is_service'] ?? 0) === 0);
 json_out([
     'ok'       => true,
     'count'    => Cart::count(),
@@ -92,4 +93,7 @@ json_out([
     'subtotalFmt' => fmt_price(Cart::subtotal($items)),
     'items'    => $out,
     'problems' => Cart::stockProblems($items),
+    // Za progres-bar besplatne dostave u košarici
+    'freeOver'    => (float) s('shipping_free_over', 0),
+    'allServices' => $allServices,
 ]);

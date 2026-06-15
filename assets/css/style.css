@@ -419,6 +419,23 @@ label.f-label { display: block; font-size: 13px; font-weight: 700; margin-bottom
 .variant-opts button.selected { border-color: var(--c-primary); background: var(--c-primary); color: #fff; font-weight: 700; }
 .variant-opts button.disabled { opacity: .3; cursor: not-allowed; text-decoration: line-through; }
 .variant-opts button.oos { opacity: .55; text-decoration: line-through; }
+.vo-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; border: 1px solid color-mix(in srgb, var(--c-text) 22%, transparent); }
+.variant-opts button.selected .vo-dot { border-color: rgba(255,255,255,.7); }
+
+/* Traka povjerenja (stranica artikla) */
+.trust-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; margin: 16px 0 4px; padding: 12px 0; border-top: 1px solid var(--c-border); border-bottom: 1px solid var(--c-border); }
+.trust-item, .trust-pay { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--c-muted); }
+.trust-item svg, .trust-pay svg { width: 17px; height: 17px; color: var(--c-primary); flex: none; }
+.trust-pay { margin-left: auto; font-weight: 600; color: var(--c-text); }
+.trust-pay svg { color: var(--c-muted); }
+
+/* Progres-bar besplatne dostave (košarica + drawer) */
+.ship-bar { background: color-mix(in srgb, var(--c-primary) 6%, var(--c-surface)); border: 1px solid color-mix(in srgb, var(--c-primary) 18%, transparent); border-radius: 10px; padding: 10px 12px; }
+.ship-bar.ok { background: color-mix(in srgb, #16a34a 8%, var(--c-surface)); border-color: color-mix(in srgb, #16a34a 22%, transparent); }
+.ship-bar-txt { font-size: 12.5px; color: var(--c-text); margin-bottom: 7px; }
+.ship-bar-track { height: 6px; border-radius: 4px; background: color-mix(in srgb, var(--c-text) 12%, transparent); overflow: hidden; }
+.ship-bar-fill { height: 100%; background: var(--c-primary); border-radius: 4px; transition: width .4s ease; }
+.ship-bar.ok .ship-bar-fill { background: #16a34a; }
 
 /* ── Dijeljenje proizvoda ── */
 .share-row { display: flex; align-items: center; gap: 8px; margin-top: 20px; flex-wrap: wrap; }

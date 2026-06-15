@@ -104,14 +104,28 @@ require __DIR__ . '/includes/header.php';
       <div class="pd-price"><small id="pd-price-from"<?= $priceFrom ? '' : ' style="display:none"' ?>>od </small><span id="pd-price-val"><?= fmt_price($displayPrice) ?></span> <small>/ <?= e($product['unit']) ?></small></div>
       <div class="pd-vat"><?= !empty(Djurdja::company()['inVatSystem']) ? 'PDV (' . rtrim(rtrim(number_format((float) $product['vat_rate'], 2, ',', ''), '0'), ',') . '%) uključen u cijenu.' : 'PDV nije obračunat (prodavatelj nije u sustavu PDV-a).' ?></div>
 
-      <?php if ($variantData): ?>
+      <?php if ($variantData):
+        $colorMap = [
+            'crna'=>'#111827','bijela'=>'#f3f4f6','siva'=>'#9ca3af','crvena'=>'#dc2626','plava'=>'#2563eb',
+            'tamnoplava'=>'#1e3a8a','teget'=>'#1e3a8a','zelena'=>'#16a34a','maslinasta'=>'#65734b',
+            'žuta'=>'#facc15','zuta'=>'#facc15','narančasta'=>'#f97316','narancasta'=>'#f97316',
+            'ljubičasta'=>'#7c3aed','ljubicasta'=>'#7c3aed','roza'=>'#ec4899','ružičasta'=>'#ec4899','ruzicasta'=>'#ec4899',
+            'smeđa'=>'#92400e','smedja'=>'#92400e','bež'=>'#d6c7a1','bez'=>'#d6c7a1',
+            'zlatna'=>'#d4af37','srebrna'=>'#c0c0c0','tirkizna'=>'#14b8a6','bordo'=>'#7f1d1d',
+        ];
+        $colorDot = function (string $val) use ($colorMap): string {
+            $hex = $colorMap[mb_strtolower(trim($val))] ?? null;
+            return $hex ? '<span class="vo-dot" style="background:' . $hex . '"></span>' : '';
+        };
+      ?>
         <div id="variant-area" class="variant-area">
-          <?php foreach ($variantData['axes'] as $ai => $axis): ?>
+          <?php foreach ($variantData['axes'] as $ai => $axis):
+              $axisColor = stripos($axis['name'], 'boja') !== false || stripos($axis['name'], 'color') !== false; ?>
             <div class="variant-axis" data-axis="<?= (int) $ai ?>">
               <span class="variant-label"><?= e($axis['name']) ?></span>
               <div class="variant-opts">
                 <?php foreach ($axis['values'] as $val): ?>
-                  <button type="button" data-val="<?= e($val) ?>"><?= e($val) ?></button>
+                  <button type="button" data-val="<?= e($val) ?>"><?= $axisColor ? $colorDot($val) : '' ?><?= e($val) ?></button>
                 <?php endforeach; ?>
               </div>
             </div>
@@ -132,10 +146,16 @@ require __DIR__ . '/includes/header.php';
         </button>
       </div>
 
+      <div class="trust-row">
+        <div class="trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Sigurna kupovina (SSL)</div>
+        <div class="trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16l3-2 3 2 3-2 3 2V8z"/><line x1="8" y1="9" x2="14" y2="9"/><line x1="8" y1="13" x2="14" y2="13"/></svg>Fiskalizirani račun u Poreznoj</div>
+        <div class="trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>Dostava na adresu</div>
+        <div class="trust-pay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Visa · Mastercard · pouzeće</div>
+      </div>
+
       <div class="pd-meta">
         <?php if ($product['barcode']): ?><span>EAN: <?= e($product['barcode']) ?></span><?php endif; ?>
         <span>Šifra: #<?= (int) $product['id'] ?></span>
-        <span>✓ Račun fiskaliziran u Poreznoj upravi</span>
       </div>
 
       <div class="share-row">
