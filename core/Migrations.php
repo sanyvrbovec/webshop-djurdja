@@ -15,7 +15,7 @@
 class Migrations
 {
     /** Verzija sheme koju OVA verzija koda očekuje. */
-    public const TARGET = 5;
+    public const TARGET = 6;
 
     /** MySQL error kodovi koji znače "već primijenjeno" — sigurno preskočiti. */
     private const IGNORABLE = [1050, 1060, 1061, 1062, 1091, 1146];

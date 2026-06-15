@@ -12,6 +12,30 @@ $product = $slug !== '' ? $db->fetch(
 
 if (!$product) { http_response_code(404); require __DIR__ . '/404.php'; exit; }
 
+// Recenzija (prijavljeni kupac, jedna po proizvodu) — običan POST, bez JS-a
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'review') {
+    csrf_check();
+    $rc = Customer::current();
+    if (!$rc) { flash('error', 'Za recenziju se prijavite.'); redirect('p/' . $product['slug']); }
+    $rating = (int) ($_POST['rating'] ?? 0);
+    $rlKey = 'review:' . client_ip();
+    if (!Security::rateLimit($rlKey, 5, 600)) { flash('error', 'Previše pokušaja — pričekajte koju minutu.'); redirect('p/' . $product['slug']); }
+    if ($rating < 1 || $rating > 5) { flash('error', 'Odaberite ocjenu (1–5 zvjezdica).'); redirect('p/' . $product['slug']); }
+    if (Reviews::byCustomer((int) $product['id'], (int) $rc['id'])) { flash('error', 'Već ste ocijenili ovaj proizvod.'); redirect('p/' . $product['slug']); }
+    $db->insert('product_reviews', [
+        'product_id'  => (int) $product['id'],
+        'customer_id' => (int) $rc['id'],
+        'author_name' => mb_substr($rc['name'], 0, 120),
+        'rating'      => $rating,
+        'comment'     => mb_substr(trim((string) ($_POST['comment'] ?? '')), 0, 2000) ?: null,
+        'verified'    => Reviews::purchased((int) $product['id'], (int) $rc['id']) ? 1 : 0,
+        'status'      => 'pending',
+    ]);
+    Security::recordAttempt($rlKey);
+    flash('success', 'Hvala! Recenzija je poslana i objavit će se nakon pregleda.');
+    redirect('p/' . $product['slug']);
+}
+
 $images = $db->fetchAll(
     'SELECT * FROM product_images WHERE product_id = :p ORDER BY is_primary DESC, sort_order, id',
     [':p' => $product['id']]
@@ -44,6 +68,11 @@ if ($variantData) {
     $priceFrom = count(array_unique($prices)) > 1;
 }
 $prodUrl = SITE_URL . '/p/' . $product['slug'];
+
+$reviewSummary = Reviews::summary((int) $product['id']);
+$reviewList = Reviews::approved((int) $product['id']);
+$reviewCustomer = Customer::current();
+$myReview = $reviewCustomer ? Reviews::byCustomer((int) $product['id'], (int) $reviewCustomer['id']) : null;
 
 $pageTitle = $product['seo_title'] ?: $product['name'];
 $pageDesc = $product['seo_description'] ?: mb_substr(strip_tags($product['short_description'] ?: ($product['description'] ?? '')), 0, 300);
@@ -88,6 +117,9 @@ require __DIR__ . '/includes/header.php';
     <div class="pd-info fade-up">
       <?php if ($product['cat_name']): ?><div class="p-cat"><?= e($product['cat_name']) ?></div><?php endif; ?>
       <h1><?= e($product['name']) ?></h1>
+      <?php if ($reviewSummary['count'] > 0): ?>
+        <a href="#recenzije" class="rating-summary"><?= Reviews::stars($reviewSummary['avg'], 15) ?> <span><?= number_format($reviewSummary['avg'], 1) ?> · <?= $reviewSummary['count'] ?> recenzija</span></a>
+      <?php endif; ?>
 
       <?php if ($variantData): ?>
         <span id="pd-stock-pill" class="stock-pill" style="display:none"></span>
@@ -185,6 +217,45 @@ require __DIR__ . '/includes/header.php';
       <div class="content"><?= $product['description'] /* HTML iz admina (vlasnik je trusted) */ ?></div>
     </div>
   <?php endif; ?>
+
+  <section class="section" id="recenzije">
+    <div class="section-head"><h2 class="section-title">Recenzije<?= $reviewSummary['count'] > 0 ? ' (' . $reviewSummary['count'] . ')' : '' ?></h2></div>
+    <?php if ($reviewSummary['count'] > 0): ?>
+      <div class="rev-agg"><?= Reviews::stars($reviewSummary['avg'], 22) ?> <strong><?= number_format($reviewSummary['avg'], 1) ?></strong> / 5 · <?= $reviewSummary['count'] ?> recenzija</div>
+    <?php endif; ?>
+    <?php if ($reviewList): ?>
+      <div class="rev-list">
+        <?php foreach ($reviewList as $rv): ?>
+          <div class="rev">
+            <div class="rev-head"><?= Reviews::stars((float) $rv['rating'], 14) ?> <strong><?= e($rv['author_name']) ?></strong>
+              <?php if ($rv['verified']): ?><span class="rev-verified">✓ kupljeno</span><?php endif; ?>
+              <span class="rev-date"><?= date('d.m.Y.', strtotime($rv['created_at'])) ?></span></div>
+            <?php if ($rv['comment']): ?><p class="rev-text"><?= nl2br(e($rv['comment'])) ?></p><?php endif; ?>
+          </div>
+        <?php endforeach; ?>
+      </div>
+    <?php else: ?>
+      <p style="color:var(--c-muted);margin:0 0 14px">Još nema recenzija — budite prvi.</p>
+    <?php endif; ?>
+
+    <?php if ($reviewCustomer && !$myReview): ?>
+      <form method="post" class="card rev-form">
+        <?= csrf_field() ?><input type="hidden" name="action" value="review">
+        <h3 style="margin-top:0">Ostavite recenziju</h3>
+        <div class="rev-stars-input" role="radiogroup" aria-label="Ocjena">
+          <?php for ($i = 5; $i >= 1; $i--): ?>
+            <input type="radio" id="rs<?= $i ?>" name="rating" value="<?= $i ?>" required><label for="rs<?= $i ?>" title="<?= $i ?> ★">★</label>
+          <?php endfor; ?>
+        </div>
+        <textarea class="f-input" name="comment" rows="3" maxlength="2000" placeholder="Vaš dojam o proizvodu (opcionalno)"></textarea>
+        <button class="btn btn-sm" style="margin-top:12px">Pošalji recenziju</button>
+      </form>
+    <?php elseif ($myReview): ?>
+      <p style="color:var(--c-muted)">Ocijenili ste ovaj proizvod<?= $myReview['status'] === 'pending' ? ' — recenzija čeka pregled.' : '.' ?></p>
+    <?php else: ?>
+      <p style="color:var(--c-muted)"><a href="<?= e(url('prijava.php?next=' . rawurlencode('p/' . $product['slug']))) ?>">Prijavite se</a> da ostavite recenziju.</p>
+    <?php endif; ?>
+  </section>
 
   <?php if ($related): ?>
     <section class="section">

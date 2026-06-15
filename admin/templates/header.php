@@ -9,6 +9,7 @@ $nav = [
     ['racuni.php', '🧾', 'Računi', ['racun.php']],
     ['fiskalni-audit.php', '🔒', 'Fiskalni audit'],
     ['proizvodi.php', '🏷️', 'Proizvodi', ['proizvod.php']],
+    ['recenzije.php', '⭐', 'Recenzije'],
     ['kategorije.php', '🗂️', 'Kategorije'],
     ['sync.php', '🔄', 'Sinkronizacija'],
     ['__sep1', '', 'Izgled i sadržaj'],

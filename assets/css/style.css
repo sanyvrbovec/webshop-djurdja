@@ -451,6 +451,25 @@ label.f-label { display: block; font-size: 13px; font-weight: 700; margin-bottom
 .lightbox img { max-width: 92vw; max-height: 92vh; border-radius: 10px; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
 .lightbox .lb-close { position: absolute; top: 16px; right: 22px; color: #fff; font-size: 34px; line-height: 1; background: none; border: 0; cursor: pointer; opacity: .85; }
 
+/* Ocjene / recenzije */
+.stars { display: inline-flex; gap: 1px; line-height: 1; }
+.stars .star { color: color-mix(in srgb, var(--c-text) 22%, transparent); }
+.stars .star.on { color: #f59e0b; }
+.rating-summary { display: inline-flex; align-items: center; gap: 8px; margin: 4px 0 2px; font-size: 13px; color: var(--c-muted); text-decoration: none; }
+.rev-agg { display: flex; align-items: center; gap: 10px; font-size: 15px; margin: 0 0 16px; }
+.rev-list { display: grid; gap: 14px; margin-bottom: 18px; }
+.rev { border: 1px solid var(--c-border); border-radius: 12px; padding: 12px 14px; }
+.rev-head { display: flex; align-items: center; gap: 9px; font-size: 13px; flex-wrap: wrap; }
+.rev-verified { font-size: 11.5px; font-weight: 700; color: #16a34a; background: color-mix(in srgb, #16a34a 10%, transparent); padding: 2px 7px; border-radius: 6px; }
+.rev-date { color: var(--c-muted); margin-left: auto; font-size: 12px; }
+.rev-text { margin: 8px 0 0; font-size: 14px; line-height: 1.6; }
+.rev-form { max-width: 520px; margin-top: 8px; }
+.rev-stars-input { display: inline-flex; flex-direction: row-reverse; gap: 4px; font-size: 30px; margin: 4px 0 12px; }
+.rev-stars-input input { position: absolute; opacity: 0; width: 0; height: 0; }
+.rev-stars-input label { color: color-mix(in srgb, var(--c-text) 22%, transparent); cursor: pointer; transition: color .12s; }
+.rev-stars-input label:hover, .rev-stars-input label:hover ~ label, .rev-stars-input input:checked ~ label { color: #f59e0b; }
+.rev-stars-input input:focus-visible + label { outline: 2px solid var(--c-primary); border-radius: 4px; }
+
 /* ── Dijeljenje proizvoda ── */
 .share-row { display: flex; align-items: center; gap: 8px; margin-top: 20px; flex-wrap: wrap; }
 .share-row .lbl { font-size: 13px; color: var(--c-muted); margin-right: 2px; }
