@@ -92,6 +92,7 @@ class Fiscalizer
                 'mode' => $mode, 'response_status' => $e->httpStatus,
                 'error_code' => $e->apiErrorCode, 'error_message' => $e->getMessage(),
                 'request_id' => $e->requestId,
+                'raw_request' => json_encode($payload),
                 'raw_response' => $e->responseBody ? json_encode($e->responseBody) : null,
                 'duration_ms' => (int) ((microtime(true) - $startTs) * 1000),
             ]);
@@ -164,6 +165,7 @@ class Fiscalizer
             'mode' => $mode, 'receipt_number' => $receiptNumber,
             'jir' => $result['jir'] ?? null, 'zki' => $result['zki'] ?? null,
             'request_id' => $result['requestId'] ?? null, 'response_status' => 200,
+            'raw_request' => json_encode($payload),
             'raw_response' => json_encode($result),
             'duration_ms' => (int) ((microtime(true) - $startTs) * 1000),
         ]);
@@ -232,6 +234,7 @@ class Fiscalizer
             self::logEvent($db, $orderId, 'error', [
                 'mode' => $order['fiscal_mode'], 'response_status' => $e->httpStatus,
                 'error_code' => $e->apiErrorCode, 'error_message' => $e->getMessage(),
+                'raw_request' => json_encode($payload),
                 'duration_ms' => (int) ((microtime(true) - $startTs) * 1000),
             ]);
             return ['success' => false, 'error' => $e->getMessage(), 'apiErrorCode' => $e->apiErrorCode];
@@ -258,6 +261,7 @@ class Fiscalizer
         self::logEvent($db, $orderId, 'storno', [
             'mode' => $order['fiscal_mode'], 'receipt_number' => $stornoNumber,
             'jir' => $result['stornoJir'] ?? null, 'response_status' => 200,
+            'raw_request' => json_encode($payload),
             'raw_response' => json_encode($result),
             'duration_ms' => (int) ((microtime(true) - $startTs) * 1000),
         ]);
@@ -501,6 +505,7 @@ class Fiscalizer
                 'response_status'=> $data['response_status'] ?? null,
                 'error_code'     => $data['error_code'] ?? null,
                 'error_message'  => $data['error_message'] ?? null,
+                'raw_request'    => $data['raw_request'] ?? null,
                 'raw_response'   => $data['raw_response'] ?? null,
                 'duration_ms'    => $data['duration_ms'] ?? null,
             ]);

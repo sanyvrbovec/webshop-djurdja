@@ -256,6 +256,7 @@ CREATE TABLE IF NOT EXISTS fiscal_log (
     response_status INT NULL,
     error_code VARCHAR(64) NULL,
     error_message TEXT NULL,
+    raw_request LONGTEXT NULL,
     raw_response LONGTEXT NULL,
     duration_ms INT UNSIGNED NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

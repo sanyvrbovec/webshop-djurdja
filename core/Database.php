@@ -18,6 +18,16 @@ class Database
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::ATTR_EMULATE_PREPARES   => false,
         ]);
+        // Uskladi DB vrijeme s hrvatskim (Europe/Zagreb) BEZ obzira gdje je server
+        // hostan — inače NOW()/CURRENT_TIMESTAMP mogu biti sat-dva drugačiji od PHP
+        // vremena, što je porezno opasno (krivo vrijeme na računu). Offset se računa
+        // po trenutnom DST-u pa je točan i ljeti (+02:00) i zimi (+01:00).
+        try {
+            $offset = (new DateTime('now', new DateTimeZone('Europe/Zagreb')))->format('P');
+            $this->pdo->exec("SET time_zone = '{$offset}'");
+        } catch (Throwable $e) {
+            error_log('[Database] time_zone: ' . $e->getMessage());
+        }
     }
 
     public static function instance(): Database
