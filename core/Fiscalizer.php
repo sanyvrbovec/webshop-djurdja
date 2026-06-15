@@ -282,35 +282,28 @@ class Fiscalizer
     }
 
     /**
-     * Payload — fiskaliziraju se ISKLJUČIVO stavke narudžbe (artikli).
-     * Dostava i naknada plaćanja NE idu u fiskalizaciju — vlasnik ih
-     * obračunava izvan ovog sustava. PDV razrada po stopama stavki,
-     * ili nonTaxableAmount ako firma nije u sustavu PDV-a (đurđa to zna).
+     * Payload — fiskaliziraju se stavke narudžbe + DOSTAVA (i naknada plaćanja),
+     * jer sve to kupac plaća pa mora biti na računu. PDV razrada po stopama
+     * (dostava prati stopu artikala / 25 %), ili nonTaxableAmount ako firma
+     * nije u sustavu PDV-a. Iznosi se računaju u Orders::receiptParts (jedan izvor).
      */
     private static function buildPayload($db, array $order, array $company): array
     {
         $items = $db->fetchAll('SELECT vat_rate, total FROM order_items WHERE order_id = :o', [':o' => $order['id']]);
-        $itemsTotal = 0.0;
-        foreach ($items as $it) $itemsTotal += (float) $it['total'];
-        $itemsTotal = round($itemsTotal, 2);
+        $parts = Orders::receiptParts($order, $items);
 
         $payload = [
             'businessSpace' => Settings::get('business_space', 'WEBSHOP'),
             'cashRegister'  => Settings::get('cash_register', '1'),
-            'totalAmount'   => $itemsTotal,
+            'totalAmount'   => $parts['grandTotal'],
             'currency'      => 'EUR',
             'paymentMethod' => self::finaCode($order['payment_method']),
-            'note'          => 'Narudžba ' . $order['order_number'] . ' (web shop, bez dostave)',
+            'note'          => 'Narudžba ' . $order['order_number'] . ' (web shop)',
         ];
 
         if (!empty($company['inVatSystem'])) {
-            $byRate = [];
-            foreach ($items as $it) {
-                $rate = round((float) $it['vat_rate'], 2);
-                $byRate[(string) $rate] = ($byRate[(string) $rate] ?? 0) + (float) $it['total'];
-            }
             $breakdown = [];
-            foreach ($byRate as $rateStr => $gross) {
+            foreach ($parts['byRate'] as $rateStr => $gross) {
                 $rate = (float) $rateStr;
                 $base = $rate > 0 ? round($gross / (1 + $rate / 100), 2) : round($gross, 2);
                 $amount = round($gross - $base, 2);
@@ -319,7 +312,7 @@ class Fiscalizer
             $payload['vatBreakdown'] = $breakdown;
         } else {
             $payload['vatBreakdown'] = [];
-            $payload['nonTaxableAmount'] = $itemsTotal;
+            $payload['nonTaxableAmount'] = $parts['grandTotal'];
         }
         return $payload;
     }

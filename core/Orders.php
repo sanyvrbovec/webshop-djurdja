@@ -216,4 +216,45 @@ class Orders
     {
         return ['cod' => 'Pouzeće', 'bank_transfer' => 'Virman', 'stripe' => 'Kartica'][$code] ?? $code;
     }
+
+    /**
+     * Jedinstveni izračun dijelova računa (artikli + DOSTAVA + naknada).
+     * Dostava i naknada plaćanja ULAZE u račun isto kao artikli — u ukupan
+     * iznos i u PDV razradu. PDV stopa dostave = stopa artikala ako su svi
+     * isti, inače standardnih 25 %. Koriste ga Fiscalizer (payload), ispis
+     * računa i mail — da svi pokazuju identičan broj.
+     *
+     * @param array $items redovi order_items (trebaju vat_rate, total)
+     * @return array{byRate: array<string,float>, itemsTotal: float, shipping: float, fee: float, extra: float, grandTotal: float, shipRate: float}
+     */
+    public static function receiptParts(array $order, array $items): array
+    {
+        $byRate = [];
+        $rates = [];
+        $itemsTotal = 0.0;
+        foreach ($items as $it) {
+            $r = round((float) $it['vat_rate'], 2);
+            $rates[(string) $r] = true;
+            $byRate[(string) $r] = ($byRate[(string) $r] ?? 0) + (float) $it['total'];
+            $itemsTotal += (float) $it['total'];
+        }
+        $itemsTotal = round($itemsTotal, 2);
+        $shipping = round((float) ($order['shipping_cost'] ?? 0), 2);
+        $fee      = round((float) ($order['payment_fee'] ?? 0), 2);
+        $extra    = round($shipping + $fee, 2);
+        // Stopa dostave: jedinstvena stopa artikala, inače standardnih 25 %.
+        $shipRate = count($rates) === 1 ? (float) array_key_first($rates) : 25.0;
+        if ($extra > 0) {
+            $byRate[(string) $shipRate] = ($byRate[(string) $shipRate] ?? 0) + $extra;
+        }
+        return [
+            'byRate'     => $byRate,
+            'itemsTotal' => $itemsTotal,
+            'shipping'   => $shipping,
+            'fee'        => $fee,
+            'extra'      => $extra,
+            'grandTotal' => round($itemsTotal + $extra, 2),
+            'shipRate'   => $shipRate,
+        ];
+    }
 }

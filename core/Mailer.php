@@ -131,26 +131,28 @@ class Mailer
 
         // Fiskalizirani račun sadrži SAMO stavke — dostava/naknada se obračunavaju
         // izvan ovog sustava (vidi Fiscalizer::buildPayload).
+        $parts = Orders::receiptParts($order, $items);
         $rows = '';
-        $byRate = [];
-        $itemsTotal = 0.0;
         foreach ($items as $it) {
             $nm = $it['name'] . (!empty($it['variant_label']) ? ' — ' . $it['variant_label'] : '');
             $rows .= '<tr><td style="padding:6px 0;border-bottom:1px solid #f3f4f6">' . e($nm) . '</td>'
                 . '<td align="right" style="padding:6px 0;border-bottom:1px solid #f3f4f6">' . (int) $it['quantity'] . '</td>'
                 . '<td align="right" style="padding:6px 0;border-bottom:1px solid #f3f4f6;white-space:nowrap">' . number_format((float) $it['unit_price'], 2, ',', '.') . '</td>'
                 . '<td align="right" style="padding:6px 0;border-bottom:1px solid #f3f4f6;white-space:nowrap">' . number_format((float) $it['total'], 2, ',', '.') . '</td></tr>';
-            $r = (string) round((float) $it['vat_rate'], 2);
-            $byRate[$r] = ($byRate[$r] ?? 0) + (float) $it['total'];
-            $itemsTotal += (float) $it['total'];
         }
-        $itemsTotal = round($itemsTotal, 2);
-        $extra = (float) $order['shipping_cost'] + (float) $order['payment_fee'];
+        if ($parts['shipping'] > 0) {
+            $rows .= '<tr><td style="padding:6px 0;border-bottom:1px solid #f3f4f6">Dostava</td><td></td><td></td>'
+                . '<td align="right" style="padding:6px 0;border-bottom:1px solid #f3f4f6;white-space:nowrap">' . number_format($parts['shipping'], 2, ',', '.') . '</td></tr>';
+        }
+        if ($parts['fee'] > 0) {
+            $rows .= '<tr><td style="padding:6px 0;border-bottom:1px solid #f3f4f6">Naknada plaćanja</td><td></td><td></td>'
+                . '<td align="right" style="padding:6px 0;border-bottom:1px solid #f3f4f6;white-space:nowrap">' . number_format($parts['fee'], 2, ',', '.') . '</td></tr>';
+        }
 
         $vatTable = '';
         if ($inVat) {
             $vatRows = '';
-            foreach ($byRate as $rate => $gross) {
+            foreach ($parts['byRate'] as $rate => $gross) {
                 $r = (float) $rate;
                 $base = $r > 0 ? round($gross / (1 + $r / 100), 2) : round($gross, 2);
                 $vat = round($gross - $base, 2);
@@ -193,12 +195,8 @@ class Mailer
             . '<tr style="font-size:11px;text-transform:uppercase;color:#9ca3af"><td>Artikl</td><td align="right">Kol.</td><td align="right">Cijena</td><td align="right">Iznos</td></tr>'
             . $rows
             . '<tr><td colspan="3" style="padding:12px 0;font-size:16px;border-top:2px solid #111"><strong>UKUPNO</strong></td>'
-            . '<td align="right" style="padding:12px 0;font-size:16px;border-top:2px solid #111;white-space:nowrap"><strong>' . fmt_price($itemsTotal) . '</strong></td></tr></table>'
+            . '<td align="right" style="padding:12px 0;font-size:16px;border-top:2px solid #111;white-space:nowrap"><strong>' . fmt_price($parts['grandTotal']) . '</strong></td></tr></table>'
             . $vatTable
-            . ($extra > 0
-                ? '<p style="color:#6b7280;font-size:12px">Napomena: dostava' . ((float) $order['payment_fee'] > 0 ? ' i naknada plaćanja' : '')
-                  . ' (' . fmt_price($extra) . ') nije predmet ovog računa i obračunava se zasebno.</p>'
-                : '')
             . '<table role="presentation" width="100%" style="border:1px dashed #9ca3af;border-radius:8px;margin:14px 0"><tr>'
             . '<td style="padding:12px;font-size:11.5px;color:#374151;word-break:break-all;vertical-align:middle">'
             . '<strong>FISKALNI PODACI</strong><br>JIR: ' . e($order['fiscal_jir']) . '<br>ZKI: ' . e($order['fiscal_zki'])
