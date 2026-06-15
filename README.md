@@ -1,6 +1,6 @@
 # 🛍️ ĐurđaShop — besplatna web trgovina za MojaĐurđa korisnike
 
-[![Verzija](https://img.shields.io/badge/verzija-1.1.0-7c3aed)](#)
+[![Verzija](https://img.shields.io/badge/verzija-1.3.4-7c3aed)](#)
 [![PHP](https://img.shields.io/badge/PHP-8.0%2B-777bb4)](#)
 [![Licenca](https://img.shields.io/badge/licenca-besplatno%20uz%20MojaĐurđa-059669)](#-licenca-i-uvjeti-korištenja)
 
@@ -11,7 +11,7 @@ fiskaliziran** u Poreznoj upravi (Fiskalizacija 2.0).
 
 > 💜 ĐurđaShop je **besplatan** za sve MojaĐurđa korisnike — uključujući besplatni paket.
 
-**Verzija:** 1.1.0 · **Zadnje ažuriranje:** 13. lipnja 2026.
+**Verzija:** 1.3.4 · **Zadnje ažuriranje:** 15. lipnja 2026.
 
 ---
 

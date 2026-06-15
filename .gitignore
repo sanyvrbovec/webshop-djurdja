@@ -25,5 +25,8 @@ Thumbs.db
 # Interni dokumenti — ne idu na javni repo (ostaju lokalno)
 docs/
 
+# Maintainerski alati (release skript) — ne trebaju krajnjim korisnicima
+tools/
+
 # JavaScript izvor — ne ide na javni repo (objavljujes obfusciranu verziju)
 assets/js/*.js
