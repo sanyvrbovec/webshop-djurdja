@@ -34,8 +34,11 @@ $params = [
 ];
 if ($mode !== '') { $where .= ' AND fiscal_mode = :md'; $params[':md'] = $mode; }
 if ($q !== '') {
-    $where .= ' AND (fiscal_receipt_number LIKE :q OR order_number LIKE :q OR customer_name LIKE :q OR customer_email LIKE :q)';
-    $params[':q'] = '%' . $q . '%';
+    $where .= ' AND (fiscal_receipt_number LIKE :q1 OR order_number LIKE :q2 OR customer_name LIKE :q3 OR customer_email LIKE :q4)';
+    $params[':q1'] = '%' . $q . '%';
+    $params[':q2'] = '%' . $q . '%';
+    $params[':q3'] = '%' . $q . '%';
+    $params[':q4'] = '%' . $q . '%';
 }
 
 $rcPage = max(1, (int) ($_GET['page'] ?? 1));
