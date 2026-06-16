@@ -18,8 +18,9 @@ $where = 'p.is_visible = 1 AND p.is_orphaned = 0';
 $params = [];
 if ($category) { $where .= ' AND p.category_id = :cid'; $params[':cid'] = $category['id']; }
 if ($q !== '') {
-    $where .= ' AND (p.name LIKE :q OR p.short_description LIKE :q OR p.barcode = :qe)';
-    $params[':q'] = '%' . $q . '%';
+    $where .= ' AND (p.name LIKE :q1 OR p.short_description LIKE :q2 OR p.barcode = :qe)';
+    $params[':q1'] = '%' . $q . '%';
+    $params[':q2'] = '%' . $q . '%';
     $params[':qe'] = $q;
 }
 
