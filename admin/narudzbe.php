@@ -15,8 +15,10 @@ if ($pay !== '' && in_array($pay, ['pending','paid','failed','refunded'], true))
     $where .= ' AND payment_status = :ps'; $params[':ps'] = $pay;
 }
 if ($q !== '') {
-    $where .= ' AND (order_number LIKE :q OR customer_name LIKE :q OR customer_email LIKE :q)';
-    $params[':q'] = '%' . $q . '%';
+    $where .= ' AND (order_number LIKE :q1 OR customer_name LIKE :q2 OR customer_email LIKE :q3)';
+    $params[':q1'] = '%' . $q . '%';
+    $params[':q2'] = '%' . $q . '%';
+    $params[':q3'] = '%' . $q . '%';
 }
 $total = (int) $db->fetchColumn("SELECT COUNT(*) FROM orders WHERE $where", $params);
 $pages = max(1, (int) ceil($total / $per));
