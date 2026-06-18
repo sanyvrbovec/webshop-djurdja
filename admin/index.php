@@ -28,12 +28,24 @@ if (is_dir(SHOP_ROOT . '/install')) {
 if (defined('DEBUG') && DEBUG) {
     $sysWarn[] = 'Uključen je <code>DEBUG</code> način rada — u produkciji ga isključite (<code>config/config.php</code> → <code>DEBUG = false</code>) da se greške ne prikazuju posjetiteljima.';
 }
+if ($kpi['fiscal_issues'] > 0) {
+    $n = (int) $kpi['fiscal_issues'];
+    $sysWarn[] = '🧾 <strong>' . $n . '</strong> ' . ($n === 1 ? 'plaćena narudžba nije fiskalizirana' : 'plaćenih narudžbi nije fiskalizirano')
+        . ' (neuspjeh, čeka ponovni pokušaj ili istekao rok). <a href="' . e(adminUrl('narudzbe.php')) . '">Otvorite narudžbe</a> i fiskalizirajte ručno — zakonski rok je <strong>48 h od naplate</strong>.';
+}
+$updateInfo = Updater::status();
 ?>
 <?php foreach ($sysWarn as $w): ?>
   <div class="alert alert-error" style="margin-bottom:14px">⚠ <?= $w ?></div>
 <?php endforeach; ?>
 <?php if (!empty($_SESSION['admin_prev_login'])): ?>
   <p class="sub" style="margin:0 0 14px">🔐 Zadnja prijava: <strong><?= e(date('d.m.Y H:i', strtotime((string) $_SESSION['admin_prev_login']))) ?></strong> — ako to niste bili vi, odmah promijenite lozinku.</p>
+<?php endif; ?>
+<?php if ($updateInfo['newer']): ?>
+  <div class="alert alert-info" style="margin-bottom:14px;display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap">
+    <span>⬆ Dostupna je nova verzija <strong><?= e($updateInfo['latest']) ?></strong> (trenutno <?= e($updateInfo['current']) ?>).</span>
+    <a class="abtn sm" href="<?= e(adminUrl('azuriranje.php')) ?>"><?= $updateInfo['oneClick'] ? 'Nadogradi sada' : 'Pogledaj' ?></a>
+  </div>
 <?php endif; ?>
 
 <div class="kpis">
@@ -42,6 +54,23 @@ if (defined('DEBUG') && DEBUG) {
   <div class="kpi"><div class="l">Promet (mjesec, plaćeno)</div><div class="v"><?= fmt_price($kpi['revenue_month']) ?></div></div>
   <div class="kpi <?= $kpi['pending'] > 0 ? 'warn' : '' ?>"><div class="l">Za obradu</div><div class="v"><?= $kpi['pending'] ?></div></div>
   <div class="kpi <?= $kpi['fiscal_issues'] > 0 ? 'bad' : '' ?>"><div class="l">Fiskalni problemi</div><div class="v"><?= $kpi['fiscal_issues'] ?></div></div>
+</div>
+
+<?php $announcements = Djurdja::announcements(); ?>
+<div class="acard" style="margin-bottom:20px">
+  <h3>📣 Obavijesti</h3>
+  <?php if ($announcements): ?>
+    <?php foreach ($announcements as $an):
+        $clr = ['info' => '#3b82f6', 'success' => '#10b981', 'warning' => '#f59e0b', 'danger' => '#ef4444'][$an['type'] ?? 'info'] ?? '#3b82f6'; ?>
+      <div style="padding:12px 14px;border-radius:10px;margin-bottom:10px;background:#f9fafb;border:1px solid #eef0f6;border-left:4px solid <?= $clr ?>">
+        <?php if (!empty($an['date'])): ?><span class="sub" style="float:right"><?= e($an['date']) ?></span><?php endif; ?>
+        <?php if (!empty($an['title'])): ?><strong style="font-size:14px"><?= e($an['title']) ?></strong><?php endif; ?>
+        <div style="font-size:13.5px;color:#374151;line-height:1.6;margin-top:4px"><?= HtmlSanitizer::clean((string) ($an['body'] ?? '')) ?></div>
+      </div>
+    <?php endforeach; ?>
+  <?php else: ?>
+    <p style="color:#8b90a0;font-size:13.5px;margin:0">Trenutno nema novih obavijesti. Ovdje će se prikazivati važne poruke i novosti iz sustava MojaĐurđa.</p>
+  <?php endif; ?>
 </div>
 
 <div style="display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start">

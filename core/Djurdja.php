@@ -153,6 +153,13 @@ class Djurdja
         return (string) Settings::get('djurdja_min_version', '');
     }
 
+    /** Obavijesti koje đurđa centralno šalje svim trgovinama (nadzorna ploča). */
+    public static function announcements(): array
+    {
+        $a = Settings::getJson('djurdja_announcements', []);
+        return is_array($a) ? $a : [];
+    }
+
     /**
      * Je li ova instalacija PRESTARA i mora se ažurirati? Kad đurđa postavi
      * minShopVersion noviju od SHOP_VERSION → izlog se zaključa dok vlasnik
@@ -367,6 +374,14 @@ class Djurdja
                 Settings::set('djurdja_shop_status', $acc['shopStatus'] ?? 'active');
                 if (!empty($acc['latestShopVersion'])) {
                     Settings::set('djurdja_latest_version', $acc['latestShopVersion']);
+                }
+                // Paket za one-click nadogradnju (URL + OBAVEZNI SHA-256). Dok ih đurđa
+                // ne šalje, ostaju prazni → gumb nudi ručno preuzimanje umjesto auto-update-a.
+                Settings::set('djurdja_download_url', (string) ($acc['shopDownloadUrl'] ?? ''));
+                Settings::set('djurdja_download_sha256', (string) ($acc['shopDownloadSha256'] ?? ''));
+                // Obavijesti koje đurđa centralno šalje svim trgovinama (prikaz na nadzornoj ploči).
+                if (array_key_exists('announcements', $acc)) {
+                    Settings::set('djurdja_announcements', json_encode(is_array($acc['announcements']) ? $acc['announcements'] : [], JSON_UNESCAPED_UNICODE));
                 }
                 // Minimalna podržana verzija (prisila na update). Ključ uvijek
                 // spremi — prazno znači "nema prisile", pa stari gateway ne blokira.

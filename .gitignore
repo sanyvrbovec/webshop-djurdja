@@ -16,6 +16,11 @@ logs/*
 !logs/.htaccess
 *.log
 
+# Maintenance flag + radni/backup direktorij auto-update-a
+config/.maintenance
+backups/*
+!backups/.htaccess
+
 # OS / IDE
 .DS_Store
 Thumbs.db

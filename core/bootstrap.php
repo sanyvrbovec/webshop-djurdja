@@ -12,7 +12,7 @@
  * bootstrap — uključuje ga svaka javna stranica, API endpoint i admin init.
  */
 
-define('SHOP_VERSION', '1.6.0');
+define('SHOP_VERSION', '1.6.1');
 define('SHOP_ROOT', dirname(__DIR__));
 
 // ── 1. Config (ako ne postoji → installer) ──
@@ -40,6 +40,26 @@ spl_autoload_register(function ($class) {
     $f = SHOP_ROOT . '/core/' . $class . '.php';
     if (is_file($f)) require_once $f;
 });
+
+// ── 3b. Maintenance mode (tijekom one-click ažuriranja) ──
+// Updater stvori config/.maintenance prije prepisivanja datoteka i obriše ga na kraju.
+// STALE-GUARD: flag stariji od 15 min se ignorira → trgovina se sama oporavi i ako
+// update zapne usred posla (uz rollback datoteka koji updater radi). Vlastiti zahtjev
+// updatera ovo NE pogađa (flag se stvara TEK nakon što njegov bootstrap prođe ovuda).
+if (PHP_SAPI !== 'cli' && is_file(SHOP_ROOT . '/config/.maintenance')
+    && (time() - (int) @filemtime(SHOP_ROOT . '/config/.maintenance')) < 900) {
+    http_response_code(503);
+    header('Retry-After: 60');
+    header('Content-Type: text/html; charset=utf-8');
+    echo '<!doctype html><html lang="hr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+        . '<meta name="robots" content="noindex"><title>Ažuriranje u tijeku</title>'
+        . '<body style="margin:0;font-family:system-ui,sans-serif;background:#f8fafc;display:grid;place-items:center;min-height:100vh">'
+        . '<div style="max-width:460px;padding:40px;text-align:center"><div style="font-size:44px">🛠️</div>'
+        . '<h1 style="font-size:22px;color:#0f172a">Trgovina se ažurira</h1>'
+        . '<p style="color:#475569;font-size:15px;line-height:1.6">Nadogradnja traje samo nekoliko trenutaka. Osvježite stranicu za koju minutu — hvala na strpljenju!</p>'
+        . '</div></body></html>';
+    exit;
+}
 
 // ── 4. SITE_URL ──
 function is_https(): bool

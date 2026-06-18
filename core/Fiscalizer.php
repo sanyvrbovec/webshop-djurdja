@@ -436,6 +436,7 @@ class Fiscalizer
 
     private static function markFailed($db, int $orderId, string $error, ?string $errorCode = null): void
     {
+        $prev = $db->fetch('SELECT fiscal_status, order_number, total FROM orders WHERE id = :id', [':id' => $orderId]);
         $db->update('orders', [
             'fiscal_status' => 'failed',
             'fiscal_error'  => mb_substr($error, 0, 255),
@@ -444,6 +445,25 @@ class Fiscalizer
         ], 'id = :id', [':id' => $orderId]);
         $db->query('UPDATE orders SET fiscal_attempts = fiscal_attempts + 1,
                     fiscal_first_attempt_at = COALESCE(fiscal_first_attempt_at, NOW()) WHERE id = :id', [':id' => $orderId]);
+
+        // Proaktivno obavijesti vlasnika JEDNOM (na prijelaz u 'failed') — račun NIJE
+        // izdan, a teče zakonski rok od 48 h. Best-effort: ne smije srušiti fiskalizaciju.
+        if ($prev && !in_array($prev['fiscal_status'], ['failed', 'failed_expired'], true)) {
+            try {
+                Mailer::send(
+                    s('shop_email', ''),
+                    '⚠ Fiskalizacija nije uspjela — ' . ($prev['order_number'] ?? "#$orderId"),
+                    '<h2 style="margin:0 0 8px">Račun nije fiskaliziran</h2>'
+                    . '<p>Narudžba <strong>' . e($prev['order_number'] ?? "#$orderId") . '</strong> ('
+                    . fmt_price($prev['total'] ?? 0) . ') je plaćena, ali fiskalizacija nije uspjela:</p>'
+                    . '<p style="background:#fef2f2;border:1px solid #fecaca;padding:10px 14px;border-radius:8px">' . e($error) . '</p>'
+                    . '<p>Otvorite narudžbu u administraciji, otklonite uzrok i kliknite <strong>„Pokušaj ponovno"</strong>. '
+                    . 'Pazite na zakonski rok fiskalizacije od <strong>48 h</strong> od naplate.</p>'
+                );
+            } catch (Throwable $e) {
+                error_log('[Fiscalizer] failed-alert mail: ' . $e->getMessage());
+            }
+        }
     }
 
     private static function markPendingRetry($db, int $orderId, string $error, ?string $errorCode, string $mode): void
