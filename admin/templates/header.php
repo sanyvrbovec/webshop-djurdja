@@ -22,7 +22,6 @@ $nav = [
     ['email.php', '✉️', 'E-mail postavke'],
     ['djurdja.php', '🔌', 'Đurđa veza'],
     ['postavke.php', '⚙️', 'Općenito'],
-    ['azuriranje.php', '⬆️', 'Nadogradnja'],
     ['dnevnik.php', '🛡️', 'Dnevnik (audit)'],
 ];
 $statusBadge = [

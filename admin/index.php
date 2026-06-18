@@ -1,6 +1,17 @@
 <?php
 require_once __DIR__ . '/templates/init.php';
 
+// Nadogradnja (one-click) — akcija je OVDJE, na nadzornoj ploči (nema zasebnog taba).
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'update') {
+    csrf_check();
+    @set_time_limit(300);
+    $res = Updater::run();
+    flash($res['ok'] ? 'success' : 'error', $res['ok']
+        ? ('Trgovina nadograđena na ' . ($res['version'] ?? '?') . ' ✓')
+        : ('Nadogradnja nije uspjela: ' . ($res['error'] ?? 'nepoznata greška')));
+    redirect('admin/');
+}
+
 // Svjež dohvat s đurđe pri SVAKOM otvaranju nadzorne ploče (obavijesti, verzija,
 // kvota, plan) — bez čekanja 6h keša. Tolerantno: pad đurđe ne ruši ploču.
 try { Djurdja::refresh(true); } catch (Throwable $e) {}
@@ -39,7 +50,7 @@ if ($kpi['fiscal_issues'] > 0) {
 }
 $minV = Djurdja::minVersion();
 if ($minV !== '' && version_compare(SHOP_VERSION, $minV, '<')) {
-    $sysWarn[] = '⛔ Verzija trgovine (' . e(SHOP_VERSION) . ') je ISPOD minimalne odobrene za rad (' . e($minV) . ') — izlog je blokiran dok ne ažurirate. <a href="' . e(adminUrl('azuriranje.php')) . '">Ažurirajte odmah</a>.';
+    $sysWarn[] = '⛔ Verzija trgovine (' . e(SHOP_VERSION) . ') je ISPOD minimalne odobrene za rad (' . e($minV) . ') — izlog je blokiran dok ne ažurirate (kartica „Verzija" niže).';
 }
 $updateInfo = Updater::status();
 ?>
@@ -49,12 +60,24 @@ $updateInfo = Updater::status();
 <?php if (!empty($_SESSION['admin_prev_login'])): ?>
   <p class="sub" style="margin:0 0 14px">🔐 Zadnja prijava: <strong><?= e(date('d.m.Y H:i', strtotime((string) $_SESSION['admin_prev_login']))) ?></strong> — ako to niste bili vi, odmah promijenite lozinku.</p>
 <?php endif; ?>
-<?php if ($updateInfo['newer']): ?>
-  <div class="alert alert-info" style="margin-bottom:14px;display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap">
-    <span>⬆ Dostupna je nova verzija <strong><?= e($updateInfo['latest']) ?></strong> (trenutno <?= e($updateInfo['current']) ?>).</span>
-    <a class="abtn sm" href="<?= e(adminUrl('azuriranje.php')) ?>"><?= $updateInfo['oneClick'] ? 'Nadogradi sada' : 'Pogledaj' ?></a>
+<?php $djMin = Djurdja::minVersion() ?: (string) s('djurdja_latest_version', ''); ?>
+<div class="acard" style="margin-bottom:16px;display:flex;gap:16px;flex-wrap:wrap;align-items:center;justify-content:space-between">
+  <div style="font-size:13.5px;line-height:1.8">
+    <strong>Verzija trgovine:</strong> <?= e($updateInfo['current']) ?>
+    &nbsp;·&nbsp; <strong>Najnovija (GitHub):</strong>
+    <?php if ($updateInfo['checkFailed']): ?><span class="sub">nedostupno</span>
+    <?php else: ?><?= e($updateInfo['latest']) ?> <?php if ($updateInfo['newer']): ?><span class="badge amber">nova</span><?php else: ?><span class="badge green">ažurno</span><?php endif; ?><?php endif; ?>
+    &nbsp;·&nbsp; <strong>Minimalna odobrena za rad (đurđa):</strong> <?= $djMin !== '' ? e($djMin) : '<span class="sub">nije postavljeno</span>' ?>
   </div>
-<?php endif; ?>
+  <?php if ($updateInfo['newer'] && $updateInfo['oneClick']): ?>
+    <form method="post" onsubmit="return confirm('Nadograditi na <?= e($updateInfo['latest']) ?>? Trgovina će nakratko biti u načinu održavanja.')">
+      <?= csrf_field() ?><input type="hidden" name="action" value="update">
+      <button class="abtn ok">⬆ Nadogradi na <?= e($updateInfo['latest']) ?></button>
+    </form>
+  <?php elseif ($updateInfo['newer']): ?>
+    <span class="sub" style="max-width:320px">Automatska nadogradnja nije moguća<?= is_string($updateInfo['capable']) ? ' — ' . e($updateInfo['capable']) : '' ?>. Preuzmite ručno s GitHuba.</span>
+  <?php endif; ?>
+</div>
 
 <div class="kpis">
   <div class="kpi"><div class="l">Narudžbe danas</div><div class="v"><?= $kpi['orders_today'] ?></div></div>
