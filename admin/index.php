@@ -68,6 +68,7 @@ $updateInfo = Updater::status();
     <?php if ($updateInfo['checkFailed']): ?><span class="sub">nedostupno</span>
     <?php else: ?><?= e($updateInfo['latest']) ?> <?php if ($updateInfo['newer']): ?><span class="badge amber">nova</span><?php else: ?><span class="badge green">ažurno</span><?php endif; ?><?php endif; ?>
     &nbsp;·&nbsp; <strong>Minimalna odobrena za rad (đurđa):</strong> <?= $djMin !== '' ? e($djMin) : '<span class="sub">nije postavljeno (postavljaš u đurđi → Prisila na novu verziju)</span>' ?>
+    <div style="margin-top:6px"><a href="https://github.com/sanyvrbovec/webshop-djurdja" target="_blank" rel="noopener" style="font-size:12.5px;color:#6d28d9;text-decoration:underline">Sve verzije i izvorni kod na GitHubu ↗</a></div>
   </div>
   <?php if ($updateInfo['newer'] && $updateInfo['oneClick']): ?>
     <form method="post" onsubmit="return confirm('Nadograditi na <?= e($updateInfo['latest']) ?>? Trgovina će nakratko biti u načinu održavanja.')">

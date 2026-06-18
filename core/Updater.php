@@ -41,7 +41,7 @@ class Updater
     {
         $cached = (string) Settings::get('gh_latest_version', '');
         $at = (int) strtotime((string) Settings::get('gh_latest_at', ''));
-        if ($cached !== '' && $at && (time() - $at) < 3600) return $cached;
+        if ($cached !== '' && $at && (time() - $at) < 300) return $cached;
         $src = self::download('https://raw.githubusercontent.com/' . self::GH_REPO . '/' . self::GH_BRANCH . '/core/bootstrap.php');
         if ($src !== null && preg_match("/define\\('SHOP_VERSION',\\s*'([^']+)'\\)/", $src, $m)) {
             Settings::set('gh_latest_version', $m[1]);
