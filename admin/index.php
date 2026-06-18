@@ -1,6 +1,10 @@
 <?php
 require_once __DIR__ . '/templates/init.php';
 
+// Svjež dohvat s đurđe pri SVAKOM otvaranju nadzorne ploče (obavijesti, verzija,
+// kvota, plan) — bez čekanja 6h keša. Tolerantno: pad đurđe ne ruši ploču.
+try { Djurdja::refresh(true); } catch (Throwable $e) {}
+
 $today = date('Y-m-d');
 $monthStart = date('Y-m-01');
 $kpi = [
@@ -32,6 +36,10 @@ if ($kpi['fiscal_issues'] > 0) {
     $n = (int) $kpi['fiscal_issues'];
     $sysWarn[] = '🧾 <strong>' . $n . '</strong> ' . ($n === 1 ? 'plaćena narudžba nije fiskalizirana' : 'plaćenih narudžbi nije fiskalizirano')
         . ' (neuspjeh, čeka ponovni pokušaj ili istekao rok). <a href="' . e(adminUrl('narudzbe.php')) . '">Otvorite narudžbe</a> i fiskalizirajte ručno — zakonski rok je <strong>48 h od naplate</strong>.';
+}
+$minV = Djurdja::minVersion();
+if ($minV !== '' && version_compare(SHOP_VERSION, $minV, '<')) {
+    $sysWarn[] = '⛔ Verzija trgovine (' . e(SHOP_VERSION) . ') je ISPOD minimalne odobrene za rad (' . e($minV) . ') — izlog je blokiran dok ne ažurirate. <a href="' . e(adminUrl('azuriranje.php')) . '">Ažurirajte odmah</a>.';
 }
 $updateInfo = Updater::status();
 ?>

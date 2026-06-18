@@ -2,35 +2,53 @@
 /**
  * Updater — one-click nadogradnja (kao WordPress), ali sigurno za shared hosting:
  *   1. maintenance mode (config/.maintenance) dok traje zamjena datoteka
- *   2. preuzimanje paketa s URL-a koji daje ĐURĐA (+ OBAVEZNA SHA-256 provjera)
+ *   2. provjera verzije i preuzimanje paketa IZRAVNO s GitHuba (HTTPS, tvrdo kodiran repo);
+ *      paket mora imati ispravan bootstrap koji NIJE stariji (downgrade/garbage zaštita)
  *   3. backup svake datoteke PRIJE prepisivanja
  *   4. ROLLBACK (vraćanje iz backupa) ako bilo što zapne
  *   5. stale-guard u bootstrapu sam ukloni maintenance ako proces padne
  *
  * Paket NE dira: config/config.php (tajne), uploads/ (sadržaj), logs/, backups/,
- * install/ (da se ne re-otvori instalacija). Đurđa kontrolira što i odakle se
- * preuzima (URL + checksum) — supply-chain povjerenje je na đurđa strani.
+ * install/. GitHub (javni repo) već ima obfusciran app.js, pa nadogradnja povlači
+ * točno ono što treba — bez ovisnosti o đurđa verzioniranju.
  */
 
 class Updater
 {
-    /** Stanje ažuriranja za prikaz u adminu. */
+    /** Javni GitHub repo = izvor istine za verziju i paket (source-available). */
+    private const GH_REPO   = 'sanyvrbovec/webshop-djurdja';
+    private const GH_BRANCH = 'main';
+
+    /** Stanje ažuriranja za prikaz u adminu (najnovija verzija se čita s GitHuba). */
     public static function status(): array
     {
         $cur    = SHOP_VERSION;
-        $latest = (string) Settings::get('djurdja_latest_version', '');
-        $url    = (string) Settings::get('djurdja_download_url', '');
-        $sha    = (string) Settings::get('djurdja_download_sha256', '');
+        $latest = self::latestFromGitHub();
         $newer  = $latest !== '' && version_compare($latest, $cur, '>');
         $cap    = self::capable();
         return [
-            'current'  => $cur,
-            'latest'   => $latest,
-            'newer'    => $newer,
-            'hasPkg'   => $url !== '' && $sha !== '',
-            'capable'  => $cap,                                  // true ili poruka greške
-            'oneClick' => $newer && $url !== '' && $sha !== '' && $cap === true,
+            'current'     => $cur,
+            'latest'      => $latest !== '' ? $latest : $cur,
+            'newer'       => $newer,
+            'capable'     => $cap,                               // true ili poruka greške
+            'oneClick'    => $newer && $cap === true,
+            'checkFailed' => $latest === '',
         ];
+    }
+
+    /** Najnovija verzija s GitHuba (SHOP_VERSION iz core/bootstrap.php na main grani). Keš 1 h. */
+    private static function latestFromGitHub(): string
+    {
+        $cached = (string) Settings::get('gh_latest_version', '');
+        $at = (int) strtotime((string) Settings::get('gh_latest_at', ''));
+        if ($cached !== '' && $at && (time() - $at) < 3600) return $cached;
+        $src = self::download('https://raw.githubusercontent.com/' . self::GH_REPO . '/' . self::GH_BRANCH . '/core/bootstrap.php');
+        if ($src !== null && preg_match("/define\\('SHOP_VERSION',\\s*'([^']+)'\\)/", $src, $m)) {
+            Settings::set('gh_latest_version', $m[1]);
+            Settings::set('gh_latest_at', date('Y-m-d H:i:s'));
+            return $m[1];
+        }
+        return $cached; // mreža pala → zadnje poznato (ili prazno)
     }
 
     /** Preduvjeti za one-click. Vrati true ili ljudski čitljivu poruku. */
@@ -45,16 +63,14 @@ class Updater
     public static function run(): array
     {
         $st = self::status();
-        if (!$st['newer'])          return ['ok' => false, 'error' => 'Već koristite najnoviju verziju.'];
+        if (!$st['newer'])           return ['ok' => false, 'error' => 'Već koristite najnoviju verziju.'];
         if ($st['capable'] !== true) return ['ok' => false, 'error' => $st['capable']];
-        if (!$st['hasPkg'])         return ['ok' => false, 'error' => 'Đurđa još nije objavila paket za automatsku nadogradnju — ažurirajte ručno.'];
 
-        $root      = SHOP_ROOT;
-        $url       = (string) Settings::get('djurdja_download_url', '');
-        $expectSha = (string) Settings::get('djurdja_download_sha256', '');
-        $maint     = $root . '/config/.maintenance';
-        $work      = $root . '/backups/_upd_' . date('YmdHis') . '_' . bin2hex(random_bytes(3));
-        $zipPath   = $work . '/pkg.zip';
+        $root    = SHOP_ROOT;
+        $url     = 'https://codeload.github.com/' . self::GH_REPO . '/zip/refs/heads/' . self::GH_BRANCH;
+        $maint   = $root . '/config/.maintenance';
+        $work    = $root . '/backups/_upd_' . date('YmdHis') . '_' . bin2hex(random_bytes(3));
+        $zipPath = $work . '/pkg.zip';
 
         if (!@mkdir($work, 0775, true) && !is_dir($work)) {
             return ['ok' => false, 'error' => 'Ne mogu kreirati radni direktorij u backups/ (provjerite dozvole).'];
@@ -63,11 +79,11 @@ class Updater
         @file_put_contents($maint, date('c')); // maintenance ON (vlastiti zahtjev je već prošao gate)
         try {
             $bytes = self::download($url);
-            if ($bytes === null || strlen($bytes) < 100) throw new RuntimeException('Preuzimanje paketa nije uspjelo.');
+            if ($bytes === null || strlen($bytes) < 1000) throw new RuntimeException('Preuzimanje paketa s GitHuba nije uspjelo.');
             if (@file_put_contents($zipPath, $bytes) === false) throw new RuntimeException('Ne mogu spremiti paket na disk.');
             unset($bytes);
 
-            $res = self::applyPackage($zipPath, $expectSha, $root, $work); // verify + extract + backup + copy (+ rollback)
+            $res = self::applyPackage($zipPath, $root, $work); // extract + provjera verzije + backup + copy (+ rollback)
             @unlink($maint); // maintenance OFF
             if (!$res['ok']) {
                 try { Audit::log('shop_update_failed', ['detail' => mb_substr((string) $res['error'], 0, 200)]); } catch (Throwable $e) {}
@@ -89,7 +105,7 @@ class Updater
      * grešku vrati sve prepisane datoteke iz backupa (rollback). Izdvojeno radi
      * testiranja (može se pozvati nad sintetičkim paketom i temp korijenom).
      */
-    public static function applyPackage(string $zipPath, string $expectSha, string $root, string $work): array
+    public static function applyPackage(string $zipPath, string $root, string $work): array
     {
         $backupDir  = $work . '/backup';
         $extractDir = $work . '/new';
@@ -97,11 +113,6 @@ class Updater
         @mkdir($extractDir, 0775, true);
         $copied = [];
         try {
-            // SHA-256 OBAVEZNO — bez ispravne provjere NE diramo nijednu datoteku
-            $expectSha = strtolower(trim($expectSha));
-            if ($expectSha === '' || !hash_equals($expectSha, strtolower((string) hash_file('sha256', $zipPath)))) {
-                throw new RuntimeException('Sigurnosna provjera paketa (SHA-256) nije prošla — paket odbijen, ništa nije promijenjeno.');
-            }
             $zip = new ZipArchive();
             if ($zip->open($zipPath) !== true) throw new RuntimeException('Paket se ne može otvoriti (neispravan ZIP).');
             if (!$zip->extractTo($extractDir)) { $zip->close(); throw new RuntimeException('Raspakiravanje paketa nije uspjelo.'); }
@@ -110,7 +121,14 @@ class Updater
             $srcRoot = self::resolveSrcRoot($extractDir);
             $files = [];
             self::collectFiles($srcRoot, '', $files);
-            if (count($files) < 5) throw new RuntimeException('Paket izgleda nepotpuno — nadogradnja prekinuta.');
+            if (count($files) < 10) throw new RuntimeException('Paket izgleda nepotpun — nadogradnja prekinuta.');
+
+            // Sigurnosna provjera (umjesto checksuma): paket MORA imati ispravan core/bootstrap.php
+            // s verzijom koja NIJE starija od trenutne — sprječava garbage/downgrade/podvalu.
+            // Povjerenje: HTTPS na github.com + tvrdo kodiran repo (nema korisničkog inputa).
+            $pkgVer = self::detectVersion($srcRoot);
+            if ($pkgVer === '?') throw new RuntimeException('Paket nema ispravan core/bootstrap.php — odbijen.');
+            if (version_compare($pkgVer, SHOP_VERSION, '<')) throw new RuntimeException('Paket (' . $pkgVer . ') je stariji od trenutne (' . SHOP_VERSION . ') — odbijen.');
 
             foreach ($files as $rel) {
                 if (self::isProtected($rel)) continue;

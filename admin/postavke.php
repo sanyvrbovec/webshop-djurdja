@@ -121,7 +121,7 @@ require __DIR__ . '/templates/header.php';
     <div class="acard">
       <h3>⚙️ Tehnički podaci</h3>
       <table class="atable" style="font-size:13px">
-        <tr><td>Verzija trgovine</td><td><strong><?= e(SHOP_VERSION) ?></strong><?php $lv = s('djurdja_latest_version'); if ($lv && version_compare($lv, SHOP_VERSION, '>')): ?> <span class="badge amber">dostupna <?= e($lv) ?></span><?php endif; ?></td></tr>
+        <tr><td>Verzija trgovine</td><td><strong><?= e(SHOP_VERSION) ?></strong><?php $us = Updater::status(); if ($us['newer']): ?> <a class="badge amber" href="<?= e(adminUrl('azuriranje.php')) ?>">dostupna <?= e($us['latest']) ?> →</a><?php endif; ?></td></tr>
         <tr><td>PHP</td><td><?= e(PHP_VERSION) ?></td></tr>
         <tr><td>Cron URL</td><td>
           <code id="cronUrl" style="font-size:11px;word-break:break-all" data-full="<?= e(SITE_URL . '/api/cron.php?token=' . CRON_TOKEN) ?>"><?= e(SITE_URL . '/api/cron.php?token=') ?>••••••••••</code>

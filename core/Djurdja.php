@@ -404,7 +404,7 @@ class Djurdja
             Settings::set('djurdja_key_invalid', '0');
             Settings::set('djurdja_last_error', null);
             self::maybeQuotaWarning();
-            self::maybeHeartbeat($client);
+            self::maybeHeartbeat($client, $force); // forsiran refresh → i heartbeat (svježa verzija u đurđi)
             self::maybePromo($client);
             return true;
         } catch (DjurdjaApiException $e) {
@@ -460,10 +460,10 @@ class Djurdja
      * 500 bez api_shops tablice…) se ponavljaju na svakom refreshu dok ne
      * prođe, pa se trgovina sama pojavi u đurđi čim server bude spreman.
      */
-    private static function maybeHeartbeat(DjurdjaClient $client): void
+    private static function maybeHeartbeat(DjurdjaClient $client, bool $force = false): void
     {
         $last = strtotime((string) Settings::get('djurdja_heartbeat_at', ''));
-        if (Settings::get('djurdja_heartbeat_ok') === '1' && $last && (time() - $last) < 24 * 3600) return;
+        if (!$force && Settings::get('djurdja_heartbeat_ok') === '1' && $last && (time() - $last) < 24 * 3600) return;
         try {
             $resp = $client->heartbeat([
                 'domain'   => $_SERVER['HTTP_HOST'] ?? php_uname('n'),
