@@ -196,6 +196,7 @@ CREATE TABLE IF NOT EXISTS orders (
     fiscal_jir VARCHAR(64) NULL,
     fiscal_zki VARCHAR(64) NULL,
     fiscal_qr TEXT NULL,
+    fiscal_taxes TEXT NULL,
     fiscal_storno_jir VARCHAR(64) NULL,
     fiscal_storno_receipt_number VARCHAR(30) NULL,
     fiscalized_at DATETIME NULL,
@@ -348,7 +349,7 @@ INSERT INTO payment_methods (code, name, description, is_active, sort_order, con
 ON DUPLICATE KEY UPDATE name = VALUES(name);
 
 -- Verzija sheme (mora odgovarati Migrations::TARGET; installer ju i eksplicitno postavi)
-INSERT INTO settings (k, v) VALUES ('schema_version', '8')
+INSERT INTO settings (k, v) VALUES ('schema_version', '9')
 ON DUPLICATE KEY UPDATE v = VALUES(v);
 
 -- ============================================================

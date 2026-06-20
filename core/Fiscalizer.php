@@ -162,6 +162,7 @@ class Fiscalizer
             'fiscal_jir'    => $result['jir'] ?? null,
             'fiscal_zki'    => $result['zki'] ?? null,
             'fiscal_qr'     => $result['qrCode'] ?? null,
+            'fiscal_taxes'  => isset($result['taxBreakdown']) ? json_encode($result['taxBreakdown'], JSON_UNESCAPED_UNICODE) : null,
             'fiscalized_at' => $mysqlDate,
             'fiscal_error'  => null,
             'fiscal_next_retry_at'   => null,
@@ -219,10 +220,15 @@ class Fiscalizer
         $stornoClientRequestId = 'storno-shop-'
             . preg_replace('/[^A-Za-z0-9]/', '', $company['companyOib'] ?? 'unknown') . '-order-' . $orderId;
 
+        // fiscal_receipt_number je spremljen u trodijelnom obliku "broj/prostor/uređaj"
+        // (npr. "50/WEBSHOP/1"). đurđa storno API traži GOLI broj (shema: ^[0-9]{1,20}$)
+        // + zasebno prostor/uređaj. Parsiramo iz spremljene vrijednosti da pogodimo TOČNO
+        // onaj prostor/uređaj kojim je račun izvorno fiskaliziran (ne trenutne postavke).
+        $rcptParts = explode('/', (string) $order['fiscal_receipt_number']);
         $payload = [
-            'businessSpace'   => Settings::get('business_space', 'WEBSHOP'),
-            'cashRegister'    => Settings::get('cash_register', '1'),
-            'receiptNumber'   => $order['fiscal_receipt_number'], // identificira ORIGINALNI račun
+            'businessSpace'   => $rcptParts[1] ?? Settings::get('business_space', 'WEBSHOP'),
+            'cashRegister'    => $rcptParts[2] ?? Settings::get('cash_register', '1'),
+            'receiptNumber'   => $rcptParts[0] ?? '', // goli broj originalnog računa (npr. "50")
             'clientRequestId' => $stornoClientRequestId,
             'reason'          => $reason,
         ];
@@ -316,32 +322,42 @@ class Fiscalizer
      */
     private static function buildPayload($db, array $order, array $company): array
     {
-        $items = $db->fetchAll('SELECT vat_rate, total FROM order_items WHERE order_id = :o', [':o' => $order['id']]);
+        $items = $db->fetchAll(
+            'SELECT djurdja_product_id, name, quantity, unit_price, vat_rate, total FROM order_items WHERE order_id = :o',
+            [':o' => $order['id']]
+        );
         $parts = Orders::receiptParts($order, $items);
 
-        $payload = [
+        // đurđa API je IZVOR ISTINE za poreze: sam povlači PnP status svakog artikla
+        // (po djurdja_product_id) i računa PDV/PnP/neoporezivo (identično POS-u). Shop
+        // NE računa poreze — samo šalje stavke računa.
+        $lines = [];
+        foreach ($items as $it) {
+            $lines[] = [
+                'name'             => mb_substr((string) $it['name'], 0, 255),
+                'quantity'         => (float) $it['quantity'],
+                'unitPrice'        => round((float) $it['unit_price'], 2),
+                'vatRate'          => (float) $it['vat_rate'],
+                'djurdjaProductId' => $it['djurdja_product_id'] ?: null,
+            ];
+        }
+        // Dostava i naknada plaćanja ulaze u račun (kupac ih plaća), ali NISU predmet PnP-a.
+        if ($parts['shipping'] > 0) {
+            $lines[] = ['name' => 'Dostava', 'quantity' => 1, 'unitPrice' => $parts['shipping'], 'vatRate' => $parts['shipRate'], 'podlijezePnp' => false];
+        }
+        if ($parts['fee'] > 0) {
+            $lines[] = ['name' => 'Naknada plaćanja', 'quantity' => 1, 'unitPrice' => $parts['fee'], 'vatRate' => $parts['shipRate'], 'podlijezePnp' => false];
+        }
+
+        return [
             'businessSpace' => Settings::get('business_space', 'WEBSHOP'),
             'cashRegister'  => Settings::get('cash_register', '1'),
-            'totalAmount'   => $parts['grandTotal'],
+            'totalAmount'   => $parts['grandTotal'], // đurđa provjerava i autoritativno pregazi
             'currency'      => 'EUR',
             'paymentMethod' => self::finaCode($order['payment_method']),
             'note'          => 'Narudžba ' . $order['order_number'] . ' (web shop)',
+            'items'         => $lines,
         ];
-
-        if (!empty($company['inVatSystem'])) {
-            $breakdown = [];
-            foreach ($parts['byRate'] as $rateStr => $gross) {
-                $rate = (float) $rateStr;
-                $base = $rate > 0 ? round($gross / (1 + $rate / 100), 2) : round($gross, 2);
-                $amount = round($gross - $base, 2);
-                $breakdown[] = ['rate' => $rate, 'base' => $base, 'amount' => $amount];
-            }
-            $payload['vatBreakdown'] = $breakdown;
-        } else {
-            $payload['vatBreakdown'] = [];
-            $payload['nonTaxableAmount'] = $parts['grandTotal'];
-        }
-        return $payload;
     }
 
     /**
